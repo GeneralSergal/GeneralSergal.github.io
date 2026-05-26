@@ -1,4 +1,4 @@
-name: Deploy Standalone Blog
+name: Deploy ORP Docs
 
 on:
   push:
@@ -21,24 +21,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create staging directory
-        run: mkdir -p public
-
-      - name: Stage root website files
+      # We assume everything for the site is already inside the /public folder
+      - name: Verify public directory exists
         run: |
-          # Copy the renamed blog file (now index.html)
-          if [ -f index.html ]; then
-            cp index.html public/
-          fi
-          
-          # Copy avatar asset if present in this repository
-          if [ -f avatar.jpg ]; then
-            cp avatar.jpg public/
+          if [ ! -d "public" ]; then
+            echo "Error: /public directory not found."
+            exit 1
           fi
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          # Tell GitHub Pages to deploy only the contents of the /public folder
           path: public
 
   deploy:

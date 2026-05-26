@@ -321,8 +321,27 @@
     footer { padding: 80px 0 60px; border-top: 1px solid var(--border); background: rgba(255,255,255,0.005); }
     .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 40px; }
     .footer-title { color: var(--heading); font-weight: 700; margin-bottom: 16px; font-family: Oxanium, sans-serif; letter-spacing: 0.05em; }
-    .footer-note { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--muted); text-align: center; font-size: 0.92rem; letter-spacing: 0.5px; }
-  
+    .footer-note {
+  margin-top: 64px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-family: 'ui-monospace', 'SFMono-Regular', monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+}
+
+.footer-note::before {
+  content: ">> ";
+  color: var(--primary);
+}
+
+.footer-note span {
+  color: var(--primary-bright);
+  padding: 0 4px;
+}
     .author-section { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; margin-top: 40px; padding-top: 40px; border-top: 1px solid var(--border); }
     .author-avatar { width: 100px; height: 100px; border-radius: 50%; border: 2px solid rgba(221,17,17,0.25); overflow: hidden; flex-shrink: 0; transition: transform var(--transition), box-shadow var(--transition); background: var(--panel-2); }
     .author-avatar:hover { transform: scale(1.04); box-shadow: 0 0 28px rgba(255,102,0,0.3); }
@@ -918,7 +937,11 @@
         </div>
       </div>
       
-      <div class="footer-note">Optimization is the highest form of respect for the hardware.</div>
+<div class="footer-note">
+  Optimization is <span>the highest form</span> of respect for the hardware.
+  <br>
+  <span style="opacity: 0.5; font-size: 0.7rem;">[SYSTEM_MANIFEST_VER_2.0 // L_MAXIMUS]</span>
+</div>
       
       <div class="author-section">
         <div class="author-avatar">

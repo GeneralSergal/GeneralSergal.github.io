@@ -4,13 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-  <title>LOGS // LAURENTIUS MAXIMUS</title>
+  <title>LAURENTIUS MAXIMUS // ARCHITECT PROFILE</title>
 
-  <meta name="description" content="Personal transmission matrix and system engineering log feeds by Laurentius Maximus." />
+  <meta name="description" content="Identity manifest and operational profile of LAURENTIUS MAXIMUS — Aerospace & Microelectronics Engineer, systems architect." />
   <meta name="theme-color" content="#dd1111" />
 
-  <meta property="og:title" content="LOGS // LAURENTIUS MAXIMUS" />
-  <meta property="og:description" content="Personal transmission matrix and system engineering log feeds." />
+  <meta property="og:title" content="LAURENTIUS MAXIMUS // ARCHITECT PROFILE" />
+  <meta property="og:description" content="Identity manifest and operational profile. Aerospace & Microelectronics Engineer. Systems Architect." />
   <meta property="og:type" content="website" />
 
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%230a0d10'/%3E%3Crect x='30' y='30' width='40' height='40' rx='6' transform='rotate(45 50 50)' fill='url(%23grad)' stroke='rgba(255,255,255,0.4)' stroke-width='2'/%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23dd1111'/%3E%3Cstop offset='100%25' stop-color='%23ff6600'/%3E%3C/linearGradient%3E%3C/defs%3E%3C/svg%3E" />
@@ -353,6 +353,100 @@
   border-radius: 4px;
   font-size: 0.8rem;
 }
+    /* =========================================================
+       Identity Manifest Styles
+       ========================================================= */
+    .manifest-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 32px;
+    }
+    .manifest-card {
+      position: relative; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--border);
+      background: var(--panel); padding: 28px 32px;
+    }
+    .manifest-card-full { grid-column: 1 / -1; }
+    .manifest-label {
+      font-family: Oxanium, sans-serif; font-size: 0.72rem; font-weight: 800;
+      letter-spacing: 0.15em; text-transform: uppercase; color: var(--primary-bright);
+      margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+    }
+    .manifest-label::before { content: "//"; color: var(--accent-orange); opacity: 0.6; }
+    .manifest-value { font-family: Oxanium, sans-serif; font-size: 1.05rem; font-weight: 700; color: var(--heading); line-height: 1.5; }
+    .manifest-sub { font-size: 0.88rem; color: var(--muted); margin-top: 6px; line-height: 1.6; }
+    .domain-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .domain-tag {
+      padding: 5px 12px; border-radius: 8px; background: rgba(221,17,17,0.08); border: 1px solid rgba(221,17,17,0.18);
+      color: var(--primary-bright); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.05em;
+      font-family: Oxanium, sans-serif; text-transform: uppercase;
+    }
+    .lang-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .lang-chip {
+      padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--panel-2); font-size: 0.82rem; font-family: Oxanium, sans-serif; font-weight: 600;
+      color: var(--text); display: flex; align-items: center; gap: 6px;
+    }
+    .lang-chip .lang-level { font-size: 0.68rem; color: var(--muted); }
+    .policy-block {
+      margin-top: 14px; padding: 16px 20px; border-radius: var(--radius-xs);
+      background: var(--panel-2); border: 1px solid var(--border);
+      font-family: ui-monospace, monospace; font-size: 0.87rem; color: var(--muted); line-height: 1.8;
+    }
+    .policy-block .pol-key { color: var(--accent-orange); font-weight: 700; }
+
+    /* Infrastructure map */
+    .infra-map {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .infra-node {
+      border-radius: var(--radius-sm); border: 1px solid var(--border);
+      background: var(--panel-2); padding: 20px 22px;
+      transition: border-color var(--transition), transform var(--transition), background-color var(--transition);
+    }
+    .infra-node:hover { border-color: rgba(221,17,17,0.28); transform: translateY(-3px); background-color: var(--panel-bright); }
+    .infra-node.core-node { border-color: rgba(221,17,17,0.3); background: rgba(221,17,17,0.06); grid-column: 1 / -1; display: flex; align-items: center; gap: 24px; }
+    .infra-node-icon { font-size: 1.3rem; margin-bottom: 10px; }
+    .infra-node.core-node .infra-node-icon { font-size: 1.8rem; margin-bottom: 0; }
+    .infra-node-title { font-family: Oxanium, sans-serif; font-size: 0.82rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent-orange); margin-bottom: 4px; }
+    .infra-node-handle { font-family: ui-monospace, monospace; font-size: 0.9rem; color: var(--heading); }
+    .infra-node-desc { font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
+    .infra-node a { color: inherit; }
+    .infra-node a:hover { color: var(--accent-orange-bright); }
+    .core-node-info .infra-node-title { font-size: 1rem; }
+    .core-node-info .infra-node-handle { font-size: 1.2rem; font-family: Oxanium, sans-serif; font-weight: 700; color: var(--heading); }
+
+    /* Social network cards */
+    .social-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 16px;
+      margin-top: 28px;
+    }
+    .social-card {
+      border-radius: var(--radius-sm); border: 1px solid var(--border);
+      background: var(--panel-2); padding: 20px 22px;
+      display: flex; align-items: center; gap: 16px;
+      transition: border-color var(--transition), transform var(--transition);
+      text-decoration: none !important; color: inherit !important;
+    }
+    .social-card:hover { border-color: rgba(221,17,17,0.28); transform: translateY(-3px); }
+    .social-icon { font-size: 1.4rem; flex-shrink: 0; }
+    .social-label { font-family: Oxanium, sans-serif; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--primary-bright); }
+    .social-handle { font-size: 0.9rem; color: var(--heading); font-weight: 600; margin-top: 2px; }
+
+    @media (max-width: 768px) {
+      .manifest-grid { grid-template-columns: 1fr; }
+      .infra-map { grid-template-columns: 1fr 1fr; }
+      .infra-node.core-node { grid-column: 1 / -1; flex-direction: column; text-align: center; }
+    }
+    @media (max-width: 480px) {
+      .infra-map { grid-template-columns: 1fr; }
+    }
+
     .author-section { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; margin-top: 40px; padding-top: 40px; border-top: 1px solid var(--border); }
     .author-avatar { width: 100px; height: 100px; border-radius: 50%; border: 2px solid rgba(221,17,17,0.25); overflow: hidden; flex-shrink: 0; transition: transform var(--transition), box-shadow var(--transition); background: var(--panel-2); }
     .author-avatar:hover { transform: scale(1.04); box-shadow: 0 0 28px rgba(255,102,0,0.3); }
@@ -495,7 +589,8 @@
         <span>L_MAXIMUS // TERMINAL</span>
       </div>
       <div class="nav-links">
-        <a href="#overview">Log Feed</a>
+        <a href="#overview">Profile</a>
+        <a href="#network">Network</a>
         <a href="#avatars">Avatars</a>
         <a href="#projects">Projects</a>
         <a href="https://generalsergal.github.io/ORP/">ORP Project</a>
@@ -508,11 +603,11 @@
       <div>
         <div class="badge">
           <div class="pulse"></div>
-          TRANSMISSION MATRIX ONLINE
+          ARCHITECT_LOG: 0.51_IDENTITY_MANIFEST
         </div>
-        <h1>System Engineering Logs</h1>
+        <h1>GeneralSergal</h1>
         <p>
-          A low-level tracking timeline documenting protocol specifications, virtual architectures, and bare-metal execution feeds.
+          Aerospace &amp; Microelectronics Engineer. Architect of Chaos. Builder of type-safe systems, epistemic protocols, and bare-metal execution environments.
         </p>
       </div>
 
@@ -520,8 +615,8 @@
         <div class="terminal">
           <div class="terminal-header">
             <div class="terminal-title-bar">
-              <div class="terminal-title-text">Active Environment State</div>
-              <div class="status-indicator active"><div class="status-dot active"></div><span>LOG_FEED // ON</span></div>
+              <div class="terminal-title-text">Identity Manifest // Active</div>
+              <div class="status-indicator active"><div class="status-dot active"></div><span>SYS_ONLINE</span></div>
             </div>
             <div class="terminal-divider"></div>
           </div>
@@ -533,62 +628,205 @@
 
   <div class="section-divider"></div>
 
-  <main class="container content-layout">
-    
-    <section class="stream-panel" style="padding: 0;">
-      <article class="content-card">
-        <div class="card-label">
-          <span class="card-tag">Architecture</span>
-          <span class="card-time">2026.05.26</span>
-        </div>
-        <h2>Freezing ORP v3.0: Enforcing Epistemic Governance Constraints</h2>
-        <p>An inspection of the final core mechanics implemented into the Open Resonance Protocol kernel to protect runtime evaluation flows from narrative drift and optimization slop...</p>
-        <a class="action-trigger" href="https://generalsergal.github.io/ORP/">Initialize Transmission Read →</a>
-      </article>
-    </section>
+  <!-- ═══════════════════════════════════════════════
+       ARCHITECT PROFILE — IDENTITY MANIFEST
+       ═══════════════════════════════════════════════ -->
+  <section id="profile" style="padding: 60px 0 0;">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Operational Profile</div>
+        <h2 class="section-title">Architect Profile</h2>
+        <div class="section-description">Core identity, professional domain, and operational parameters of the system operator.</div>
+      </div>
 
-    <aside class="sidebar-panel">
-      <div class="content-card widget-box">
-        <div class="widget-hdr">Operator Matrix</div>
-        <div class="profile-node">
-          <div class="profile-meta">
-            <div class="profile-frame">
-              <img src="avatars/avatar.jpg" alt="Profile">
-            </div>
-            <div>
-              <div class="profile-identity">Laurentius Maximus</div>
-              <div class="profile-rank">The ENTROPIA</div>
-            </div>
+      <div class="manifest-grid">
+
+        <!-- Core Identity -->
+        <div class="manifest-card">
+          <div class="manifest-label">Core Identity</div>
+          <div class="manifest-value">@GeneralSergal</div>
+          <div class="manifest-sub">Architect of Chaos · The ENTROPIA · Laurentius Maximus</div>
+        </div>
+
+        <!-- Role -->
+        <div class="manifest-card">
+          <div class="manifest-label">Professional Role</div>
+          <div class="manifest-value">Aerospace &amp; Microelectronics Engineer</div>
+          <div class="manifest-sub">Bridging hardware precision with systems architecture.</div>
+        </div>
+
+        <!-- Technical Domains -->
+        <div class="manifest-card manifest-card-full">
+          <div class="manifest-label">Technical Domains</div>
+          <div class="domain-tags">
+            <span class="domain-tag">Embedded Systems</span>
+            <span class="domain-tag">PCB Design</span>
+            <span class="domain-tag">Avionics</span>
+            <span class="domain-tag">Infrastructure &amp; Systems Management</span>
+            <span class="domain-tag">Protocol Engineering</span>
+            <span class="domain-tag">Epistemic Governance</span>
           </div>
-          <p class="profile-summary" style="margin: 0; font-size: 0.9rem; color: var(--muted); line-height: 1.5;">
-            Architect focused on type-safe systems, epistemic governance frameworks, and real-time environment optimization.
-          </p>
         </div>
-      </div>
 
-      <div class="content-card widget-box">
-        <div class="widget-hdr">Topic Matrix</div>
-        <div class="chip-stack">
-          <div class="chip-row"><span class="chip-title">Architecture</span><span class="chip-num">03</span></div>
-          <div class="chip-row"><span class="chip-title">Observability</span><span class="chip-num">02</span></div>
-          <div class="chip-row"><span class="chip-title">Automation</span><span class="chip-num">01</span></div>
+        <!-- System Spectrum -->
+        <div class="manifest-card manifest-card-full">
+          <div class="manifest-label">System Spectrum</div>
+          <div class="manifest-value" style="font-size: 0.95rem; font-family: 'Space Grotesk', sans-serif; font-weight: 400; color: var(--muted); line-height: 1.7;">
+            I operate on principles of autonomy and engineering precision. Systems are designed for recoverability over completion, signal over narrative, and provenance preservation over coherent storytelling. Engage with intent.
+          </div>
         </div>
-      </div>
 
-    <!-- <div class="content-card widget-box">
-        <div class="widget-hdr">Recent Avatars</div>
-        <div class="avatar-matrix">
-          <div class="avatar-cell"><img src="avatars/1.png" alt="Avatar Variant 01" onerror="this.style.display='none'; this.parentNode.innerText='AV-01'"></div>
-          <div class="avatar-cell"><img src="avatars/2.png" alt="Avatar Variant 02" onerror="this.style.display='none'; this.parentNode.innerText='AV-02'"></div>
-          <div class="avatar-cell"><img src="avatars/3.png" alt="Avatar Variant 03" onerror="this.style.display='none'; this.parentNode.innerText='AV-03'"></div>
-          <div class="avatar-cell"><img src="avatars/4.png" alt="Avatar Variant 04" onerror="this.style.display='none'; this.parentNode.innerText='AV-04'"></div>
-        </div>
       </div>
-    </aside> r-->
-
-  </main>
+    </div>
+  </section>
 
   <div class="section-divider"></div>
+
+  <!-- ═══════════════════════════════════════════════
+       OPERATIONAL PARAMETERS
+       ═══════════════════════════════════════════════ -->
+  <section id="parameters" style="padding: 60px 0 0;">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Operational Parameters</div>
+        <h2 class="section-title">System Configuration</h2>
+        <div class="section-description">Language proficiency matrix and engagement protocol governing inbound transmissions.</div>
+      </div>
+
+      <div class="manifest-grid">
+
+        <!-- Language Proficiency -->
+        <div class="manifest-card">
+          <div class="manifest-label">Language Proficiency</div>
+          <div class="lang-row">
+            <div class="lang-chip">🇷🇺 Russian <span class="lang-level">NATIVE</span></div>
+            <div class="lang-chip">🇺🇦 Ukrainian <span class="lang-level">NATIVE</span></div>
+            <div class="lang-chip">🇬🇧 English <span class="lang-level">FLUENT</span></div>
+            <div class="lang-chip">🇵🇱 Polish <span class="lang-level">BASIC</span></div>
+            <div class="lang-chip">🇩🇪 German <span class="lang-level">IN PROGRESS</span></div>
+          </div>
+        </div>
+
+        <!-- Engagement Policy -->
+        <div class="manifest-card">
+          <div class="manifest-label">Engagement Policy</div>
+          <div class="policy-block">
+            <span class="pol-key">FILTER_STATE:</span> ACTIVE<br>
+            <span class="pol-key">PROTOCOL:</span> Standardized filtering enabled.<br>
+            <span class="pol-key">REQUIREMENT:</span> Provide clear contact intent.<br>
+            <span class="pol-key">CHANNEL:</span> Low-entropy, purpose-driven only.<br>
+            <span class="pol-key">SPAM_HANDLING:</span> Systematic purge (block/ignore).
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- ═══════════════════════════════════════════════
+       INFRASTRUCTURE MAP
+       ═══════════════════════════════════════════════ -->
+  <section id="network" style="padding: 60px 0 0;">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Infrastructure Mapping</div>
+        <h2 class="section-title">Network &amp; Socials</h2>
+        <div class="section-description">Active interfaces and external platform endpoints. Central hub, asset repositories, and social channels.</div>
+      </div>
+
+      <div class="infra-map">
+
+        <!-- Core Node -->
+        <div class="infra-node core-node">
+          <div class="infra-node-icon">◆</div>
+          <div class="core-node-info">
+            <div class="infra-node-title">Central Hub</div>
+            <div class="infra-node-handle">@GeneralSergal</div>
+            <div class="infra-node-desc">Root identity node · All transmissions originate here.</div>
+          </div>
+        </div>
+
+        <!-- Telegram -->
+        <div class="infra-node">
+          <div class="infra-node-icon">✈</div>
+          <div class="infra-node-title">Telegram — Main</div>
+          <div class="infra-node-handle"><a href="https://t.me/GeneralSergal" target="_blank" rel="noopener noreferrer">t.me/GeneralSergal</a></div>
+          <div class="infra-node-desc">Primary transmission channel · Announcements &amp; updates.</div>
+        </div>
+
+        <!-- Telegram Characters -->
+        <div class="infra-node">
+          <div class="infra-node-icon">🗃</div>
+          <div class="infra-node-title">Telegram — Asset Repo</div>
+          <div class="infra-node-handle"><a href="https://t.me/GSCharacters" target="_blank" rel="noopener noreferrer">t.me/GSCharacters</a></div>
+          <div class="infra-node-desc">Character archive &amp; community chat node.</div>
+        </div>
+
+        <!-- GitHub -->
+        <div class="infra-node">
+          <div class="infra-node-icon">⌥</div>
+          <div class="infra-node-title">GitHub</div>
+          <div class="infra-node-handle"><a href="https://github.com/GeneralSergal" target="_blank" rel="noopener noreferrer">GeneralSergal</a></div>
+          <div class="infra-node-desc">Source repository · Specs, utilities, ORP protocol.</div>
+        </div>
+
+        <!-- Twitter / X -->
+        <div class="infra-node">
+          <div class="infra-node-icon">𝕏</div>
+          <div class="infra-node-title">Twitter / X</div>
+          <div class="infra-node-handle"><a href="#" target="_blank" rel="noopener noreferrer">GeneralSergal</a></div>
+          <div class="infra-node-desc">External broadcast interface.</div>
+        </div>
+
+        <!-- Discord -->
+        <div class="infra-node">
+          <div class="infra-node-icon">◈</div>
+          <div class="infra-node-title">Discord</div>
+          <div class="infra-node-handle"><a href="#" target="_blank" rel="noopener noreferrer">GeneralSergal</a></div>
+          <div class="infra-node-desc">Real-time communication node.</div>
+        </div>
+
+        <!-- VRChat -->
+        <div class="infra-node">
+          <div class="infra-node-icon">◉</div>
+          <div class="infra-node-title">VRChat</div>
+          <div class="infra-node-handle"><a href="#" target="_blank" rel="noopener noreferrer">Max Lorenz</a></div>
+          <div class="infra-node-desc">Virtual interface · Avatar registry active.</div>
+        </div>
+
+        <!-- FurAffinity -->
+        <div class="infra-node">
+          <div class="infra-node-icon">◬</div>
+          <div class="infra-node-title">FurAffinity</div>
+          <div class="infra-node-handle"><a href="https://www.furaffinity.net/user/thevirusua" target="_blank" rel="noopener noreferrer">thevirusua</a></div>
+          <div class="infra-node-desc">Creative archive · Character designs &amp; artwork.</div>
+        </div>
+
+        <!-- ORP Project -->
+        <div class="infra-node">
+          <div class="infra-node-icon">⟁</div>
+          <div class="infra-node-title">ORP Specification</div>
+          <div class="infra-node-handle"><a href="https://generalsergal.github.io/ORP/" target="_blank" rel="noopener noreferrer">generalsergal.github.io/ORP</a></div>
+          <div class="infra-node-desc">Open Resonance Protocol · Epistemic governance framework.</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <div class="section-divider"></div>
+
+  <section style="padding: 60px 0 0;" class="container">
+    <div class="section-header">
+      <div class="section-eyebrow">VRChat Registry</div>
+      <h2 class="section-title">Avatar Archive</h2>
+      <div class="section-description">Active VRChat avatar registry. Full character matrix with VRAM status ratings.</div>
+    </div>
+  </section>
 
 <div id="avatars" class="showcase-grid expandable-matrix">
   <div class="content-card showcase-card">
@@ -1024,13 +1262,14 @@
       const target = document.getElementById("term-stats");
       if (!target) return;
       target.innerHTML = `
-        <div class="term-row" style="display:flex; margin-bottom:8px;"><div class="label" style="width:110px; flex-shrink:0;">NODE_ID:</div><div class="value">LAURENTIUS_ROOT</div></div>
-        <div class="term-row" style="display:flex; margin-bottom:8px;"><div class="label" style="width:110px; flex-shrink:0;">CORE_MODE:</div><div class="green">METRIC_LOGGING</div></div>
-        <div class="term-row" style="display:flex; margin-bottom:8px;"><div class="label" style="width:110px; flex-shrink:0;">ROUTING:</div><div class="blue">ROOT_DOMAIN</div></div>
+        <div class="term-row" style="display:flex; margin-bottom:8px;"><div class="label" style="width:130px; flex-shrink:0;">OPERATOR:</div><div class="value">GeneralSergal</div></div>
+        <div class="term-row" style="display:flex; margin-bottom:8px;"><div class="label" style="width:130px; flex-shrink:0;">ROLE:</div><div class="green">Aerospace & µE Engineer</div></div>
+        <div class="term-row" style="display:flex; margin-bottom:8px;"><div class="label" style="width:130px; flex-shrink:0;">FILTER:</div><div class="orange">ACTIVE // INTENT_REQUIRED</div></div>
+        <div class="term-row" style="display:flex; margin-bottom:8px;"><div class="label" style="width:130px; flex-shrink:0;">PROTOCOL:</div><div class="blue">ORP v3.0 // FROZEN</div></div>
         <div class="entity-box">
-          <div class="entity-title">Execution Context</div>
-          TARGET: ZERO RUNTIME STATE DRIFT<br>
-          ISOLATION: ENABLED // L1-L4 UNBROKEN
+          <div class="entity-title">Execution Doctrine</div>
+          AUTONOMY: ENFORCED // PRECISION: ACTIVE<br>
+          ISOLATION: L1-L4 UNBROKEN // DRIFT: NONE
         </div>
       `;
     }

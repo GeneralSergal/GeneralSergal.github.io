@@ -412,6 +412,24 @@
       color: var(--primary-bright); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.05em;
       font-family: Oxanium, sans-serif; text-transform: uppercase;
     }
+	  .identity-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.identity-tag {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
     .lang-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
     .lang-chip {
       padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
@@ -719,6 +737,23 @@
           </div>
         </div>
 
+		  <!-- Extended Identity Markers -->
+<div class="manifest-card manifest-card-full">
+  <div class="manifest-label">Extended Identity Markers</div>
+
+  <div class="identity-tags">
+    <span class="identity-tag">Furry</span>
+    <span class="identity-tag">Pan/Demisexual</span>
+    <span class="identity-tag">Chaos Gremlin</span>
+    <span class="identity-tag">Metalhead</span>
+    <span class="identity-tag">Switch‑leaning Top</span>
+    <span class="identity-tag">Silly Systems Engineer</span>
+    <span class="identity-tag">Germany</span>
+    <span class="identity-tag">ENTROPIA</span>
+    <span class="identity-tag">18+ STRICT</span>
+  </div>
+</div>
+
         <!-- System Spectrum -->
         <div class="manifest-card manifest-card-full">
           <div class="manifest-label">System Spectrum</div>
@@ -726,6 +761,7 @@
             I operate on principles of autonomy and engineering precision. Systems are designed for recoverability over completion, signal over narrative, and provenance preservation over coherent storytelling. Engage with intent.
           </div>
         </div>
+		  
 
       </div>
     </div>

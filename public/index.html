@@ -395,7 +395,7 @@
     }
     .policy-block .pol-key { color: var(--accent-orange); font-weight: 700; }
 
-    /* Infrastructure map */
+  /* Infrastructure map */
     .infra-map {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -409,8 +409,22 @@
     }
     .infra-node:hover { border-color: rgba(221,17,17,0.28); transform: translateY(-3px); background-color: var(--panel-bright); }
     .infra-node.core-node { border-color: rgba(221,17,17,0.3); background: rgba(221,17,17,0.06); grid-column: 1 / -1; display: flex; align-items: center; gap: 24px; }
-    .infra-node-icon { font-size: 1.3rem; margin-bottom: 10px; }
+    
+    /* Icon Container - Updated for Flex SVG alignment */
+    .infra-node-icon { 
+      font-size: 1.3rem; margin-bottom: 10px; 
+      display: flex; align-items: center; justify-content: flex-start;
+    }
+    .infra-node-icon img { 
+      width: 1.3rem; height: 1.3rem; 
+      filter: brightness(0) invert(1) opacity(0.8); /* Matches #dce2eb */
+      transition: opacity var(--transition);
+    }
+    .infra-node:hover .infra-node-icon img { opacity: 1; }
+
     .infra-node.core-node .infra-node-icon { font-size: 1.8rem; margin-bottom: 0; }
+    .infra-node.core-node .infra-node-icon img { width: 1.8rem; height: 1.8rem; }
+    
     .infra-node-title { font-family: Oxanium, sans-serif; font-size: 0.82rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent-orange); margin-bottom: 4px; }
     .infra-node-handle { font-family: ui-monospace, monospace; font-size: 0.9rem; color: var(--heading); }
     .infra-node-desc { font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
@@ -748,69 +762,60 @@
           </div>
         </div>
 
-        <!-- Telegram -->
-        <div class="infra-node">
-          <div class="infra-node-icon">✈</div>
-          <div class="infra-node-title">Telegram — Main</div>
-          <div class="infra-node-handle"><a href="https://t.me/GeneralSergal" target="_blank" rel="noopener noreferrer">t.me/GeneralSergal</a></div>
-          <div class="infra-node-desc">Primary transmission channel · Announcements &amp; updates.</div>
-        </div>
+ <div class="infra-node">
+  <div class="infra-node-icon"><img src="https://cdn.simpleicons.org/telegram/dce2eb" alt="Telegram" /></div>
+  <div class="infra-node-title">Telegram — Main</div>
+  <div class="infra-node-handle"><a href="https://t.me/GeneralSergal" target="_blank" rel="noopener noreferrer">t.me/GeneralSergal</a></div>
+  <div class="infra-node-desc">Primary transmission channel · Announcements &amp; updates.</div>
+</div>
 
-        <!-- Telegram Characters -->
-        <div class="infra-node">
-          <div class="infra-node-icon">🗃</div>
-          <div class="infra-node-title">Telegram — Asset Repo</div>
-          <div class="infra-node-handle"><a href="https://t.me/GSCharacters" target="_blank" rel="noopener noreferrer">t.me/GSCharacters</a></div>
-          <div class="infra-node-desc">Character archive &amp; community chat node.</div>
-        </div>
+<div class="infra-node">
+  <div class="infra-node-icon"><img src="https://cdn.simpleicons.org/telegram/dce2eb" alt="Telegram" /></div>
+  <div class="infra-node-title">Telegram — Asset Repo</div>
+  <div class="infra-node-handle"><a href="https://t.me/GSCharacters" target="_blank" rel="noopener noreferrer">t.me/GSCharacters</a></div>
+  <div class="infra-node-desc">Character archive &amp; community chat node.</div>
+</div>
 
-        <!-- GitHub -->
-        <div class="infra-node">
-          <div class="infra-node-icon">⌥</div>
-          <div class="infra-node-title">GitHub</div>
-          <div class="infra-node-handle"><a href="https://github.com/GeneralSergal" target="_blank" rel="noopener noreferrer">GeneralSergal</a></div>
-          <div class="infra-node-desc">Source repository · Specs, utilities, ORP protocol.</div>
-        </div>
+<div class="infra-node">
+  <div class="infra-node-icon"><img src="https://cdn.simpleicons.org/github/dce2eb" alt="GitHub" /></div>
+  <div class="infra-node-title">GitHub</div>
+  <div class="infra-node-handle"><a href="https://github.com/GeneralSergal" target="_blank" rel="noopener noreferrer">GeneralSergal</a></div>
+  <div class="infra-node-desc">Source repository · Specs, utilities, ORP protocol.</div>
+</div>
 
-        <!-- Twitter / X -->
-        <div class="infra-node">
-          <div class="infra-node-icon">𝕏</div>
-          <div class="infra-node-title">Twitter / X</div>
-          <div class="infra-node-handle"><a href="https://x.com/GeneralSergal" target="_blank" rel="noopener noreferrer">GeneralSergal</a></div>
-          <div class="infra-node-desc">External broadcast interface.</div>
-        </div>
+<div class="infra-node">
+  <div class="infra-node-icon"><img src="https://cdn.simpleicons.org/x/dce2eb" alt="X" /></div>
+  <div class="infra-node-title">Twitter / X</div>
+  <div class="infra-node-handle"><a href="https://x.com/GeneralSergal" target="_blank" rel="noopener noreferrer">GeneralSergal</a></div>
+  <div class="infra-node-desc">External broadcast interface.</div>
+</div>
 
-        <!-- Discord -->
-        <div class="infra-node">
-          <div class="infra-node-icon">◈</div>
-          <div class="infra-node-title">Discord</div>
-          <div class="infra-node-handle"><a href="https://discord.com/users/409371929640697876" target="_blank" rel="noopener noreferrer">GeneralSergal</a></div>
-          <div class="infra-node-desc">Real-time communication node.</div>
-        </div>
+<div class="infra-node">
+  <div class="infra-node-icon"><img src="https://cdn.simpleicons.org/discord/dce2eb" alt="Discord" /></div>
+  <div class="infra-node-title">Discord</div>
+  <div class="infra-node-handle"><a href="https://discord.com/users/409371929640697876" target="_blank" rel="noopener noreferrer">GeneralSergal</a></div>
+  <div class="infra-node-desc">Real-time communication node.</div>
+</div>
 
-        <!-- VRChat -->
-        <div class="infra-node">
-          <div class="infra-node-icon">◉</div>
-          <div class="infra-node-title">VRChat</div>
-          <div class="infra-node-handle"><a href="https://vrchat.com/home/user/usr_c4859c6f-55e6-49bf-8d1d-b30af681892f" target="_blank" rel="noopener noreferrer">Max Lorenz</a></div>
-          <div class="infra-node-desc">Virtual interface · Avatar registry active.</div>
-        </div>
+<div class="infra-node">
+  <div class="infra-node-icon"><img src="https://cdn.simpleicons.org/vrchat/dce2eb" alt="VRChat" /></div>
+  <div class="infra-node-title">VRChat</div>
+  <div class="infra-node-handle"><a href="https://vrchat.com/home/user/usr_c4859c6f-55e6-49bf-8d1d-b30af681892f" target="_blank" rel="noopener noreferrer">Max Lorenz</a></div>
+  <div class="infra-node-desc">Virtual interface · Avatar registry active.</div>
+</div>
 
-        <!-- FurAffinity -->
-        <div class="infra-node">
-          <div class="infra-node-icon">◬</div>
-          <div class="infra-node-title">FurAffinity</div>
-          <div class="infra-node-handle"><a href="https://www.furaffinity.net/user/thevirusua" target="_blank" rel="noopener noreferrer">thevirusua</a></div>
-          <div class="infra-node-desc">Creative archive · Character designs &amp; artwork.</div>
-        </div>
+<div class="infra-node">
+  <div class="infra-node-icon"><img src="https://cdn.simpleicons.org/furaffinity/dce2eb" alt="FurAffinity" /></div>
+  <div class="infra-node-title">FurAffinity</div>
+  <div class="infra-node-handle"><a href="https://www.furaffinity.net/user/thevirusua" target="_blank" rel="noopener noreferrer">thevirusua</a></div>
+  <div class="infra-node-desc">Creative archive · Character designs &amp; artwork.</div>
+</div>
 
-        <!-- ORP Project -->
-        <div class="infra-node">
-          <div class="infra-node-icon">⟁</div>
-          <div class="infra-node-title">ORP Specification</div>
-          <div class="infra-node-handle"><a href="https://generalsergal.github.io/ORP/" target="_blank" rel="noopener noreferrer">generalsergal.github.io/ORP</a></div>
-          <div class="infra-node-desc">Open Resonance Protocol · Epistemic governance framework.</div>
-        </div>
+<div class="infra-node">
+  <div class="infra-node-icon">⟁</div> <div class="infra-node-title">ORP Specification</div>
+  <div class="infra-node-handle"><a href="https://generalsergal.github.io/ORP/" target="_blank" rel="noopener noreferrer">generalsergal.github.io/ORP</a></div>
+  <div class="infra-node-desc">Open Resonance Protocol · Epistemic governance framework.</div>
+</div>
 
       </div>
     </div>

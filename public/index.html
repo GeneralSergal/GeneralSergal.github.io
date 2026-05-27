@@ -412,23 +412,29 @@
       color: var(--primary-bright); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.05em;
       font-family: Oxanium, sans-serif; text-transform: uppercase;
     }
-	  .identity-tags {
+	 .identity-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .identity-tag {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-family: 'Space Grotesk', sans-serif;
-  color: var(--muted);
-  white-space: nowrap;
+  padding: 5px 12px;
+  border-radius: 8px;
+
+  /* Slightly different palette — cooler, more spectral */
+  background: rgba(17, 136, 221, 0.08);
+  border: 1px solid rgba(17, 136, 221, 0.18);
+  color: var(--primary);
+
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  font-family: Oxanium, sans-serif;
+  text-transform: uppercase;
 }
+
 
     .lang-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
     .lang-chip {
@@ -737,6 +743,16 @@
           </div>
         </div>
 
+
+
+        <!-- System Spectrum -->
+        <div class="manifest-card manifest-card-full">
+          <div class="manifest-label">System Spectrum</div>
+          <div class="manifest-value" style="font-size: 0.95rem; font-family: 'Space Grotesk', sans-serif; font-weight: 400; color: var(--muted); line-height: 1.7;">
+            I operate on principles of autonomy and engineering precision. Systems are designed for recoverability over completion, signal over narrative, and provenance preservation over coherent storytelling. Engage with intent.
+          </div>
+        </div>
+		  
 		  <!-- Extended Identity Markers -->
 <div class="manifest-card manifest-card-full">
   <div class="manifest-label">Extended Identity Markers</div>
@@ -753,16 +769,6 @@
     <span class="identity-tag">18+ STRICT</span>
   </div>
 </div>
-
-        <!-- System Spectrum -->
-        <div class="manifest-card manifest-card-full">
-          <div class="manifest-label">System Spectrum</div>
-          <div class="manifest-value" style="font-size: 0.95rem; font-family: 'Space Grotesk', sans-serif; font-weight: 400; color: var(--muted); line-height: 1.7;">
-            I operate on principles of autonomy and engineering precision. Systems are designed for recoverability over completion, signal over narrative, and provenance preservation over coherent storytelling. Engage with intent.
-          </div>
-        </div>
-		  
-
       </div>
     </div>
   </section>

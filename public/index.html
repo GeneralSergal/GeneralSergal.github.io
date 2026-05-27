@@ -426,7 +426,7 @@
     }
     .policy-block .pol-key { color: var(--accent-orange); font-weight: 700; }
 
-  /* Infrastructure map */
+/* Infrastructure map */
     .infra-map {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -441,19 +441,23 @@
     .infra-node:hover { border-color: rgba(221,17,17,0.28); transform: translateY(-3px); background-color: var(--panel-bright); }
     .infra-node.core-node { border-color: rgba(221,17,17,0.3); background: rgba(221,17,17,0.06); grid-column: 1 / -1; display: flex; align-items: center; gap: 24px; }
     
-    /* Icon Container - Updated for Flex SVG alignment */
+    /* Icon Container - Stabilized for Flex SVG alignment */
     .infra-node-icon { 
       font-size: 1.3rem; margin-bottom: 10px; 
       display: flex; align-items: center; justify-content: flex-start;
+      min-height: 24px;
     }
     .infra-node-icon img { 
       width: 1.3rem; height: 1.3rem; 
-      filter: brightness(0) invert(1) opacity(0.8); /* Matches #dce2eb */
-      transition: opacity var(--transition);
+      filter: brightness(0) invert(1) opacity(0.85);
+      transition: opacity var(--transition), transform var(--transition);
     }
-    .infra-node:hover .infra-node-icon img { opacity: 1; }
+    .infra-node:hover .infra-node-icon img { opacity: 1; transform: scale(1.05); }
 
-    .infra-node.core-node .infra-node-icon { font-size: 1.8rem; margin-bottom: 0; }
+    .infra-node.core-node .infra-node-icon { 
+      font-size: 1.8rem; margin-bottom: 0; 
+      margin-right: 8px;
+    }
     .infra-node.core-node .infra-node-icon img { width: 1.8rem; height: 1.8rem; }
     
     .infra-node-title { font-family: Oxanium, sans-serif; font-size: 0.82rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent-orange); margin-bottom: 4px; }

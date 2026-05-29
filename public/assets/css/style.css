@@ -300,6 +300,7 @@ a:hover { color: var(--accent-orange-bright); }
   position: fixed; border-radius: 50%; pointer-events: none; z-index: -1;
   animation: emberFloat linear infinite;
   will-change: transform, opacity;
+  contain: strict; /* own stacking context — no layout/paint spill */
 }
 .ember-1 { width: 4px; height: 4px; background: rgba(255,102,0,0.5); top: 20%; left: 15%; animation-duration: 8s; animation-delay: 0s; }
 .ember-2 { width: 3px; height: 3px; background: rgba(255,51,51,0.6); top: 35%; right: 12%; animation-duration: 10s; animation-delay: 2s; }
@@ -318,7 +319,8 @@ a:hover { color: var(--accent-orange-bright); }
   position: fixed; width: 1000px; height: 1000px; border-radius: 50%;
   background: radial-gradient(circle, rgba(255,102,0,0.12) 0%, rgba(221,17,17,0.08) 35%, rgba(106,58,138,0.04) 55%, transparent 75%);
   top: -350px; right: -250px; z-index: -1; pointer-events: none; filter: blur(20px);
-  will-change: transform; /* own compositing layer — static element, no animation needed */
+  transform: translateZ(0); /* promote to own GPU layer without will-change */
+  contain: layout style; /* prevent filter from triggering full-page stacking */
 }
 
 .resonance-ring {
@@ -327,6 +329,7 @@ a:hover { color: var(--accent-orange-bright); }
   top: -330px; right: -250px; z-index: -3;
   animation: rotateSlow 75s linear infinite;
   will-change: transform;
+  contain: layout style; /* pseudo-elements stay inside; no page relayout */
 }
 .resonance-ring::before, .resonance-ring::after {
   content: ""; position: absolute; inset: 80px; border-radius: inherit; border: 1px dashed rgba(255,102,0,0.04);
@@ -338,8 +341,8 @@ a:hover { color: var(--accent-orange-bright); }
   to   { transform: rotate(360deg); }
 }
 
-.glyph-layer { position: fixed; inset: 0; z-index: -2; pointer-events: none; overflow: hidden; opacity: 0.05; }
-.glyph { position: absolute; color: var(--primary); font-family: Oxanium, sans-serif; font-size: 14px; letter-spacing: 0.12em; animation: drift linear infinite; will-change: transform; }
+.glyph-layer { position: fixed; inset: 0; z-index: -2; pointer-events: none; overflow: hidden; opacity: 0.05; contain: strict; }
+.glyph { position: absolute; color: var(--primary); font-family: Oxanium, sans-serif; font-size: 14px; letter-spacing: 0.12em; animation: drift linear infinite; will-change: transform; contain: layout style; }
 .glyph:nth-child(1) { top: 12%; left: 8%; animation-duration: 26s; }
 .glyph:nth-child(2) { top: 34%; right: 10%; animation-duration: 31s; }
 .glyph:nth-child(3) { bottom: 18%; left: 14%; animation-duration: 34s; }
@@ -747,8 +750,8 @@ footer { padding: 80px 0 60px; border-top: 1px solid var(--border); background: 
 .scroll-top:hover { background: var(--panel-bright); color: var(--accent-orange-bright); border-color: rgba(255,102,0,0.4); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.5); }
 
 /* ── Reveal Animation ──────────────────────────────────── */
-.reveal { opacity: 0; transform: translateY(32px); transition: opacity 650ms cubic-bezier(0.2, 0, 0, 1), transform 650ms cubic-bezier(0.2, 0, 0, 1); will-change: transform, opacity; }
-.reveal.visible { opacity: 1; transform: translateY(0); will-change: auto; }
+.reveal { opacity: 0; transform: translateY(32px); transition: opacity 650ms cubic-bezier(0.2, 0, 0, 1), transform 650ms cubic-bezier(0.2, 0, 0, 1); will-change: transform, opacity; contain: layout; }
+.reveal.visible { opacity: 1; transform: translateY(0); will-change: auto; contain: none; }
 
 /* ── Page Hero (non-index pages) ───────────────────────── */
 .page-hero {

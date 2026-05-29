@@ -208,6 +208,24 @@
       const initial = parseFloat(firstSigil.dataset.initialDrift || '0');
       updateSigilDrift(initial);
     }
+
+    // ── Wire to runtime-overlay SHS changes ──────────────────
+    // The runtime-overlay updates state.shs but has no native
+    // event. We poll the tab-pill element (already updated by
+    // the overlay's update() function) at low frequency.
+    // This adds zero coupling to runtime-overlay internals.
+    let _lastSHS = '';
+    setInterval(() => {
+      const pill = document.getElementById('cc-tab-shs');
+      if (!pill) return;
+      const shs = pill.textContent.trim().toUpperCase();
+      if (shs && shs !== _lastSHS) {
+        _lastSHS = shs;
+        // Map overlay's AMBER label to the sigil's YELLOW key
+        const mapped = shs === 'AMBER' ? 'YELLOW' : shs;
+        updateSigilFromSHS(mapped);
+      }
+    }, 800); // 800ms — imperceptible lag, very low CPU cost
   }
 
 

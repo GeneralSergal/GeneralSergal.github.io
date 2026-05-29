@@ -147,7 +147,10 @@
         gap: 10px;
         pointer-events: none;
         font-family: "Oxanium", "Space Grotesk", sans-serif;
-        will-change: transform, opacity;
+        /* GPU: promote overlay to own layer so panel open/close
+           doesn't trigger full-page compositing */
+        contain: layout style;
+        transform: translateZ(0);
         transition:
           opacity 180ms ease,
           visibility 180ms ease,
@@ -358,7 +361,8 @@
         background: linear-gradient(90deg, #3fb950, #00d4ff);
         width: 100%;
         transition: width 0.9s cubic-bezier(0.2,0,0,1);
-        will-change: width;
+        /* NOTE: will-change:width causes layout — omit it intentionally.
+           The bar is narrow; transition cost is negligible. */
       }
       .cc-bar-fill.degraded { background: linear-gradient(90deg, #ff8833, #ff3333); }
       .cc-bar-fill.danger   { background: linear-gradient(90deg, #dd1111, #ff6600); }

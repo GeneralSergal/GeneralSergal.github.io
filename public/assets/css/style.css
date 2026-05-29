@@ -4,6 +4,13 @@
    ============================================================ */
 
 :root {
+  /* Font System */
+  --font-ui: "Space Grotesk", system-ui, sans-serif;
+  --font-display: "Oxanium", "Rajdhani", sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", monospace;
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0.015em;
+  --tracking-wide: 0.08em;
   --bg: #06080b;
   --panel: #0f1217;
   --panel-2: #161a22;
@@ -31,6 +38,18 @@
   --transition: 250ms cubic-bezier(0.2, 0, 0, 1);
 }
 
+
+/* Font Hierarchy */
+h1, h2, h3, .section-title, .logo, .pipeline-step, .section-eyebrow,
+.release-tag, .author-name, .author-title, .badge, .btn {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-tight);
+}
+
+p, li, .nav-links a, .section-description {
+  font-family: var(--font-ui);
+  font-weight: 400;
+}
 /* ============================================================
    FONT SYSTEM — HYBRID ORP PATCH
    Drop this BELOW your current :root block
@@ -249,9 +268,7 @@ body {
   margin: 0;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at top right, rgba(255,102,0,0.06), transparent 40%),
-    radial-gradient(circle at bottom left, rgba(221,17,17,0.05), transparent 45%),
-    radial-gradient(circle at 20% 80%, rgba(106,58,138,0.03), transparent 50%),
+
     var(--bg);
   color: var(--text);
   font-family: "Space Grotesk", system-ui, sans-serif;
@@ -282,6 +299,7 @@ a:hover { color: var(--accent-orange-bright); }
 .ember {
   position: fixed; border-radius: 50%; pointer-events: none; z-index: -1;
   animation: emberFloat linear infinite;
+  will-change: transform, opacity;
 }
 .ember-1 { width: 4px; height: 4px; background: rgba(255,102,0,0.5); top: 20%; left: 15%; animation-duration: 8s; animation-delay: 0s; }
 .ember-2 { width: 3px; height: 3px; background: rgba(255,51,51,0.6); top: 35%; right: 12%; animation-duration: 10s; animation-delay: 2s; }
@@ -300,6 +318,7 @@ a:hover { color: var(--accent-orange-bright); }
   position: fixed; width: 1000px; height: 1000px; border-radius: 50%;
   background: radial-gradient(circle, rgba(255,102,0,0.12) 0%, rgba(221,17,17,0.08) 35%, rgba(106,58,138,0.04) 55%, transparent 75%);
   top: -350px; right: -250px; z-index: -1; pointer-events: none; filter: blur(20px);
+  will-change: transform; /* own compositing layer — static element, no animation needed */
 }
 
 .resonance-ring {
@@ -307,6 +326,7 @@ a:hover { color: var(--accent-orange-bright); }
   border: 1px solid rgba(221,17,17,0.05);
   top: -330px; right: -250px; z-index: -3;
   animation: rotateSlow 75s linear infinite;
+  will-change: transform;
 }
 .resonance-ring::before, .resonance-ring::after {
   content: ""; position: absolute; inset: 80px; border-radius: inherit; border: 1px dashed rgba(255,102,0,0.04);
@@ -319,7 +339,7 @@ a:hover { color: var(--accent-orange-bright); }
 }
 
 .glyph-layer { position: fixed; inset: 0; z-index: -2; pointer-events: none; overflow: hidden; opacity: 0.05; }
-.glyph { position: absolute; color: var(--primary); font-family: Oxanium, sans-serif; font-size: 14px; letter-spacing: 0.12em; animation: drift linear infinite; }
+.glyph { position: absolute; color: var(--primary); font-family: Oxanium, sans-serif; font-size: 14px; letter-spacing: 0.12em; animation: drift linear infinite; will-change: transform; }
 .glyph:nth-child(1) { top: 12%; left: 8%; animation-duration: 26s; }
 .glyph:nth-child(2) { top: 34%; right: 10%; animation-duration: 31s; }
 .glyph:nth-child(3) { bottom: 18%; left: 14%; animation-duration: 34s; }
@@ -376,19 +396,49 @@ nav.nav-hidden {
 }
 
 .logo-mark {
-  position: relative; 
-  width: 18px; 
-  height: 18px; 
-  transform: rotate(45deg); 
-  border-radius: 4px;
-  background: linear-gradient(135deg, var(--primary), var(--accent-orange));
-  box-shadow: 0 0 24px rgba(221,17,17,0.5), 0 0 12px rgba(255,102,0,0.25);
+  position: relative;
+  width: 18px;
+  height: 18px;
+  background: transparent;
 }
-.logo-mark::before { 
-  content: ""; 
-  position: absolute; 
-  inset: 4px; 
-  border: 1px solid rgba(255,255,255,0.25); 
+
+.logo-mark::before,
+.logo-mark::after,
+.logo-mark span {
+  content: "";
+  position: absolute;
+  border: 2px solid;
+  border-color: var(--primary);
+  border-image: linear-gradient(135deg, var(--primary), var(--accent-orange)) 1;
+}
+
+.logo-mark::before {
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  transform: rotate(0deg);
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+.logo-mark::after {
+  width: 68%;
+  height: 68%;
+  top: 16%;
+  left: 16%;
+  transform: rotate(0deg);
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+.logo-mark span {
+  width: 36%;
+  height: 36%;
+  top: 32%;
+  left: 32%;
+  transform: rotate(0deg);
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  border-color: var(--accent-orange);
+  box-shadow: 0 0 8px rgba(221, 17, 17, 0.6);
 }
 
 .nav-links { 
@@ -698,7 +748,7 @@ footer { padding: 80px 0 60px; border-top: 1px solid var(--border); background: 
 
 /* ── Reveal Animation ──────────────────────────────────── */
 .reveal { opacity: 0; transform: translateY(32px); transition: opacity 650ms cubic-bezier(0.2, 0, 0, 1), transform 650ms cubic-bezier(0.2, 0, 0, 1); will-change: transform, opacity; }
-.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal.visible { opacity: 1; transform: translateY(0); will-change: auto; }
 
 /* ── Page Hero (non-index pages) ───────────────────────── */
 .page-hero {
@@ -1094,4 +1144,174 @@ nav.menu-open {
 .orp-compact-scope .text-red { 
   color: var(--primary-bright); 
   text-shadow: 0 0 6px rgba(255, 51, 51, 0.3);
+}
+/* ============================================================
+   RUNTIME CONSOLE — FINAL POLISH PATCH
+   ============================================================ */
+
+.rc-dashboard,
+.rc-metric-card,
+.rc-warden,
+.rc-log,
+.rc-split,
+.rc-layers,
+.rc-metrics,
+.rc-alert-box,
+.rc-section {
+  background: rgba(15, 18, 23, 0.96) !important;
+  border: 1px solid rgba(221, 17, 17, 0.35) !important;
+  color: #dce2eb !important;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.rc-warden {
+  border-color: #ff3333 !important;
+  background: rgba(30, 8, 8, 0.85) !important;
+}
+
+.rc-warden h2,
+.rc-warden .section-eyebrow {
+  color: #ff6666 !important;
+}
+
+/* Log & History panels */
+.entropy-log,
+.edtu-history,
+.rc-log pre,
+.rc-metrics {
+  background: rgba(10, 12, 16, 0.9) !important;
+  border: 1px solid rgba(221, 17, 17, 0.2) !important;
+  color: #b0b8c8 !important;
+  font-family: var(--font-mono);
+}
+
+/* Status boxes */
+.status-box {
+  background: rgba(22, 26, 34, 0.95) !important;
+  border: 1px solid var(--border-strong) !important;
+  color: var(--text) !important;
+}
+
+/* NESS Indicator */
+.ness-green { color: #3fb950 !important; }
+.ness-red   { color: #ff3333 !important; background: rgba(170, 0, 0, 0.2) !important; }
+
+/* Force text visibility */
+.rc-dashboard h2,
+.rc-dashboard h3,
+.rc-warden h2,
+.section-title {
+  color: #f0f4f9 !important;
+}
+
+/* Bar colors */
+.rc-bar {
+  background: linear-gradient(90deg, #ff6600, #dd1111) !important;
+}
+
+/* Final visibility enforcement */
+.reveal.visible,
+div[class*="rc-"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* ============================================================
+   RUNTIME CONSOLE — FINAL REFINEMENT (Layer Cards + Contrast)
+   ============================================================ */
+
+.rc-layers .grid,
+div[class*="rc-layers"] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+/* Layer Cards Polish */
+.rc-layer-card,
+div[class*="layer"] {
+  background: rgba(22, 26, 34, 0.92) !important;
+  border: 1px solid rgba(221, 17, 17, 0.4) !important;
+  border-radius: 12px;
+  padding: 24px;
+  transition: border-color 0.25s ease;
+}
+
+.rc-layer-card:hover {
+  border-color: var(--accent-orange) !important;
+  box-shadow: 0 0 20px rgba(255, 102, 0, 0.15);
+}
+
+.rc-layer-card h3,
+.rc-layer-card .layer-title {
+  color: var(--heading) !important;
+  font-family: var(--font-display) !important;
+  margin-bottom: 12px;
+  letter-spacing: -0.02em;
+}
+
+.rc-layer-card p {
+  color: #b0b8c8 !important;
+  line-height: 1.65;
+}
+
+/* Status indicators in cards */
+.rc-layer-card .status {
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: inline-block;
+  margin-top: 12px;
+}
+
+.status-active   { background: rgba(63, 185, 80, 0.15); color: #3fb950; border: 1px solid rgba(63,185,80,0.3); }
+.status-monitoring { background: rgba(255, 136, 51, 0.15); color: #ff8833; border: 1px solid rgba(255,136,51,0.3); }
+.status-enforced { background: rgba(221, 17, 17, 0.15); color: #ff6666; border: 1px solid rgba(221,17,17,0.4); }
+
+/* Warden Manifest refinement */
+.rc-warden {
+  border-color: #ff5555 !important;
+  background: linear-gradient(180deg, rgba(40, 10, 10, 0.9), rgba(20, 5, 5, 0.85)) !important;
+}
+
+.rc-warden .status-pill {
+  background: #440000 !important;
+  color: #ff8888 !important;
+  border: 1px solid #ff4444;
+}
+
+/* General text boost */
+.rc-dashboard,
+.rc-log,
+.rc-metrics,
+.rc-split {
+  color: #dce2eb !important;
+}
+
+h2, h3, .section-title {
+  color: #f0f4f9 !important;
+}/* Final Layer Card Boost */
+.rc-layer-card {
+  background: rgba(22, 26, 34, 0.95) !important;
+  border: 1px solid rgba(221, 17, 17, 0.45) !important;
+  min-height: 260px;
+}
+
+.rc-layer-card:hover {
+  border-color: var(--accent-orange) !important;
+  box-shadow: 0 0 25px rgba(255, 102, 0, 0.2) !important;
+}
+
+.rc-layer-name {
+  color: #f0f4f9 !important;
+  font-size: 1.05rem !important;
+}
+
+.rc-layer-desc {
+  color: #b0b8c8 !important;
+  line-height: 1.7 !important;
 }

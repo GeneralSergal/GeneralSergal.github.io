@@ -1,0 +1,282 @@
+/* ============================================================
+   ENTROPIA SIGIL — Component Stylesheet
+   ORP Δ v3.0 | entropia-sigil.css
+   
+   DROP-IN: Add <link rel="stylesheet" href="assets/css/entropia-sigil.css">
+   to your <head>, AFTER style.css.
+   ============================================================ */
+
+
+/* ── CSS Custom Properties ────────────────────────────────────
+   All visual instability is controlled by --drift-intensity.
+   JavaScript updates this in real-time via updateSigilDrift().
+   Range: 0.0 (stable, idle breathing) → 1.0 (full fracture)
+   ─────────────────────────────────────────────────────────── */
+.entropia-sigil {
+
+  /* PRIMARY TELEMETRY VARIABLE — set from JS */
+  --drift-intensity: 0;
+
+  /* Derived values (do not set these manually) */
+  --glow-core:          calc(4px  + var(--drift-intensity) * 18px);
+  --glow-outer:         calc(8px  + var(--drift-intensity) * 32px);
+  --glow-alpha:         calc(0.55 + var(--drift-intensity) * 0.45);
+  --fracture-opacity:   calc(var(--drift-intensity) * 0.9);
+  --jitter-scale:       calc(1    + var(--drift-intensity) * 0.025);
+  --ring-speed:         calc(6s   - var(--drift-intensity) * 4.5s);
+  --pulse-speed:        calc(3.5s - var(--drift-intensity) * 2s);
+  --es-shs-glow:        rgba(63, 185, 80, 0.15); /* updated by JS */
+
+  /* Layout */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  user-select: none;
+  pointer-events: none;
+
+  /* Drop shadow driven by SHS glow variable */
+  filter: drop-shadow(0 0 var(--glow-core) var(--es-shs-glow));
+  transition: filter 800ms ease;
+}
+
+/* SVG base */
+.entropia-sigil svg {
+  display: block;
+  overflow: hidden;   /* was: visible — visible bleed was intercepting mobile touches */
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Every child of the sigil must never intercept events */
+.entropia-sigil *,
+.entropia-sigil svg * {
+  pointer-events: none !important;
+}
+
+
+/* ── ANIMATION: Idle breath ───────────────────────────────────
+   Gentle scale + rotation cycle. Always active.
+   Speed increases with drift (faster when unstable).
+   ─────────────────────────────────────────────────────────── */
+.es-core-group {
+  transform-origin: center;
+  animation: sigilBreathe var(--pulse-speed, 3.5s) ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes sigilBreathe {
+  0%   { transform: scale(1)      rotate(0deg); }
+  30%  { transform: scale(1.012)  rotate(0.4deg); }
+  65%  { transform: scale(0.993)  rotate(-0.3deg); }
+  100% { transform: scale(1)      rotate(0deg); }
+}
+
+
+/* ── ANIMATION: Outer orbit ring rotation ────────────────────
+   Spins faster as drift increases.
+   ─────────────────────────────────────────────────────────── */
+.es-orbit-ring {
+  transform-origin: center;
+  animation: sigilOrbit var(--ring-speed, 6s) linear infinite;
+  will-change: transform;
+}
+
+@keyframes sigilOrbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+
+/* ── ANIMATION: Fracture shards (drift-gated) ────────────────
+   Opacity bound to --fracture-opacity, so shards are invisible
+   at drift=0 and fully visible at drift=1.
+   ─────────────────────────────────────────────────────────── */
+.es-fracture {
+  opacity: var(--fracture-opacity);
+  transition: opacity 400ms ease;
+}
+
+
+/* ── ANIMATION: Glitch/jitter displacement ───────────────────
+   Intensity and speed both scale with drift.
+   Invisible at low drift; sharp jitter at high drift.
+   ─────────────────────────────────────────────────────────── */
+.es-glitch-layer {
+  animation: sigilJitter
+    calc(0.08s + (1 - var(--drift-intensity)) * 0.5s)
+    steps(1)
+    infinite;
+  opacity: calc(var(--drift-intensity) * 0.85);
+  will-change: transform, opacity;
+}
+
+@keyframes sigilJitter {
+  0%  { transform: translate(0,    0)    skewX(0deg); }
+  15% { transform: translate(-1px, 1px)  skewX(-0.5deg); }
+  30% { transform: translate(1px,  -1px) skewX(0.3deg); }
+  45% { transform: translate(0,    1px); }
+  60% { transform: translate(-1px, 0)    skewX(0.4deg); }
+  80% { transform: translate(1px,  0); }
+  100%{ transform: translate(0,    0); }
+}
+
+
+/* ── ANIMATION: Scanline pixel bleed ─────────────────────────
+   Only becomes visible above drift ~0.4.
+   Uses mix-blend-mode: screen for additive light effect.
+   ─────────────────────────────────────────────────────────── */
+.es-scanline {
+  opacity: calc((var(--drift-intensity) - 0.4) * 1.5);
+  transition: opacity 300ms ease;
+  mix-blend-mode: screen;
+}
+
+
+/* ── ANIMATION: Wing feather shimmer ─────────────────────────
+   Alternating shimmer on left/right wings, offset in phase.
+   ─────────────────────────────────────────────────────────── */
+.es-wing-l {
+  transform-origin: center;
+  animation: wingShimmer
+    calc(4s - var(--drift-intensity) * 2s)
+    ease-in-out
+    infinite
+    alternate;
+  will-change: opacity, transform;
+}
+.es-wing-r {
+  transform-origin: center;
+  animation: wingShimmer
+    calc(4s - var(--drift-intensity) * 2s)
+    ease-in-out
+    infinite
+    alternate-reverse;
+  will-change: opacity, transform;
+}
+
+@keyframes wingShimmer {
+  from { opacity: 0.55; transform: scaleY(1); }
+  to   { opacity: 0.85; transform: scaleY(1.03); }
+}
+
+
+/* ── HOVER STATE ──────────────────────────────────────────────
+   On hover: faster breath, heightened glow, faster orbit.
+   Does NOT change the underlying drift telemetry.
+   ─────────────────────────────────────────────────────────── */
+.entropia-sigil:hover .es-core-group {
+  animation: sigilBreatheHover 1.8s ease-in-out infinite;
+}
+
+.entropia-sigil:hover .es-orbit-ring {
+  animation-duration: calc(var(--ring-speed) * 0.4);
+}
+
+.entropia-sigil:hover {
+  filter: drop-shadow(0 0 calc(var(--glow-core) * 1.8) var(--es-shs-glow))
+          drop-shadow(0 0 calc(var(--glow-outer) * 0.6) rgba(221, 17, 17, 0.3));
+}
+
+@keyframes sigilBreatheHover {
+  0%   { transform: scale(1.02)   rotate(0deg); }
+  40%  { transform: scale(1.045)  rotate(1.2deg); }
+  70%  { transform: scale(1.01)   rotate(-0.8deg); }
+  100% { transform: scale(1.02)   rotate(0deg); }
+}
+
+
+/* ── SIZE VARIANTS ────────────────────────────────────────────
+   Apply alongside .entropia-sigil for preset sizes.
+   ─────────────────────────────────────────────────────────── */
+.entropia-sigil--sm   { width: 64px;  height: 64px;  }
+.entropia-sigil--md   { width: 120px; height: 120px; }
+.entropia-sigil--lg   { width: 200px; height: 200px; }
+.entropia-sigil--xl   { width: 320px; height: 320px; }
+.entropia-sigil--hero { width: min(420px, 85vw); height: min(420px, 85vw); }
+
+
+/* ── PLACEMENT: Hero background sigil ────────────────────────
+   On desktop (≥ 701px): fixed to the viewport right side so it
+   persists while scrolling — detached from any hero container.
+   On mobile: absolute inside its hero parent, top-right corner.
+   Set pointer-events:none so it never intercepts clicks.
+   ─────────────────────────────────────────────────────────── */
+.entropia-sigil--hero-bg {
+  /* Mobile default — absolute inside position:relative hero */
+  position: absolute;
+  top: 16px;
+  right: -20px;
+  transform: none;
+  opacity: 0.30;
+  pointer-events: none !important;
+  z-index: 0;
+  overflow: hidden;
+  width: min(200px, 55vw) !important;
+  height: min(200px, 55vw) !important;
+}
+
+@media (min-width: 701px) {
+  .entropia-sigil--hero-bg {
+    /* Desktop: fixed to viewport, vertically centered,
+       right side — fully visible and clear of content */
+    position: fixed;
+    top: 50vh;
+    right: 20px;                /* fully on-screen, not bleeding off edge */
+    transform: translateY(-50%);
+    opacity: 0.20;
+    z-index: 1;                 /* above bg layers, below nav/UI */
+    width: 340px !important;
+    height: 340px !important;
+    overflow: visible;
+    /* Soft fade toward the edges so it reads as atmosphere */
+    mask-image: radial-gradient(ellipse 75% 75% at 50% 50%, black 45%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse 75% 75% at 50% 50%, black 45%, transparent 80%);
+    will-change: transform;     /* own compositing layer — no page repaints */
+  }
+}
+
+@media (min-width: 1100px) {
+  .entropia-sigil--hero-bg {
+    right: 40px;
+    width: 380px !important;
+    height: 380px !important;
+    opacity: 0.22;
+  }
+}
+
+@media (min-width: 1400px) {
+  .entropia-sigil--hero-bg {
+    right: 60px;
+    opacity: 0.24;
+    width: 440px !important;
+    height: 440px !important;
+  }
+}
+
+
+/* ── PLACEMENT: Terminal widget inline ───────────────────────
+   Blend mode makes it layer naturally over dark terminal panels.
+   ─────────────────────────────────────────────────────────── */
+.entropia-sigil--terminal {
+  filter: saturate(0.75) brightness(0.85)
+          drop-shadow(0 0 6px rgba(221, 17, 17, 0.4));
+  mix-blend-mode: screen;
+}
+
+
+/* ── PLACEMENT: Nav / favicon scale ──────────────────────────
+   Reduced motion: respects user preference.
+   ─────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .es-core-group,
+  .es-orbit-ring,
+  .es-wing-l,
+  .es-wing-r,
+  .es-glitch-layer {
+    animation: none;
+    will-change: auto;
+  }
+}

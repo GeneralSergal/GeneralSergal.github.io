@@ -468,7 +468,17 @@
     <div class="container nav-inner">
 
       <a href="index.html" class="logo" style="color:inherit;text-decoration:none;">
-        <div class="logo-mark"></div>
+         <svg class="logo-mark" width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <filter id="logo-glow" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="2.5" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <polygon points="50,8 92,80 8,80" fill="none" stroke="#dd1111" stroke-width="6" stroke-linejoin="round" filter="url(#logo-glow)"/>
+          <polygon points="50,26 78,72 22,72" fill="none" stroke="#ff4400" stroke-width="5" stroke-linejoin="round" filter="url(#logo-glow)"/>
+          <polygon points="50,44 65,65 35,65" fill="none" stroke="#ff6600" stroke-width="4" stroke-linejoin="round" filter="url(#logo-glow)"/>
+        </svg>
         <span>L_MAXIMUS // TERMINAL</span>
       </a>
 

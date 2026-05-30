@@ -17,7 +17,7 @@
   if (document.getElementById("cc-overlay")) return;
 
   /* ── Session entropy persistence ───────────────────────── */
-  const SS_KEY = "orp_session_entropy";
+  const SS_KEY            = "orp_session_entropy";
   const loadSessionEntropy = () => parseFloat(sessionStorage.getItem(SS_KEY) || "0");
   const saveSessionEntropy = (v) => sessionStorage.setItem(SS_KEY, String(v));
 
@@ -28,13 +28,10 @@
     warden:         0,
     wardenState:    "DORMANT",
     shs:            "GREEN",
-    dsHistory:      [],
     logEntries:     [],
     sessionEntropy: loadSessionEntropy(),
-    scrollAccum:    0,
-    lastScrollY:    window.scrollY,
     panelOpen:      false,
-    decayTimer:     null,
+    _rafHandle:     null,
   };
 
   /* ── Helpers ────────────────────────────────────────────── */
@@ -42,6 +39,46 @@
   const fmt4   = n => n.toFixed(4);
   const fmt1   = n => n.toFixed(1);
   const nowStr = () => new Date().toLocaleTimeString("en-GB", { hour12: false });
+
+  /* ── Cached DOM refs (populated after buildOverlay) ────── */
+  let _domCache = null;
+
+  /* ── Cached sigil NodeList — avoids cold querySelectorAll per rAF tick ── */
+  let _sigilCache = null;
+  function _getSigils() {
+    return _sigilCache || (_sigilCache = document.querySelectorAll('.entropia-sigil'));
+  }
+
+  function _dom() {
+    if (_domCache) return _domCache;
+    // All IDs queried exactly once after injection
+    const g = id => document.getElementById(id);
+    _domCache = {
+      overlay:       g("cc-overlay"),
+      tab:           g("cc-tab"),
+      panel:         g("cc-panel"),
+      dot:           g("cc-tab-dot"),
+      pill:          g("cc-tab-shs"),
+      ds:            g("cc-ds"),
+      rho:           g("cc-rho"),
+      rhoBar:        g("cc-rho-bar"),
+      rhoPct:        g("cc-rho-pct"),
+      shs:           g("cc-shs"),
+      wpct:          g("cc-wpct"),
+      wBar:          g("cc-w-bar"),
+      wPct:          g("cc-w-pct"),
+      wardenIcon:    g("cc-warden-icon"),
+      wardenTitle:   g("cc-warden-title"),
+      wardenDesc:    g("cc-warden-desc"),
+      wardenBadge:   g("cc-warden-badge"),
+      wardenRow:     g("cc-warden-row"),
+      sessionVal:    g("cc-session-val"),
+      pageLabel:     g("cc-page-label"),
+      log:           g("cc-log"),
+      asciiPanel:    document.querySelector('.ascii-core-panel'),
+    };
+    return _domCache;
+  }
 
   /* ── Inject overlay HTML ────────────────────────────────── */
   function buildOverlay() {
@@ -134,34 +171,31 @@
     const style = document.createElement("style");
     style.id = "cc-styles";
     style.textContent = `
-      /* ── Overlay container ─────────────────────────── */
       #cc-overlay {
         position: fixed;
         bottom: 24px;
         left: 24px;
-        /* lowered default desktop stack */
-        z-index: 1200;
+        z-index: 9995;
         display: flex;
         flex-direction: row;
         align-items: flex-end;
-        gap: 10px;
+        gap: 12px;
         pointer-events: none;
         font-family: "Oxanium", "Space Grotesk", sans-serif;
-        /* GPU: promote overlay to own layer so panel open/close
-           doesn't trigger full-page compositing */
-        contain: layout style;
+        will-change: transform;
+        contain: layout style paint; /* paint: fixed overlay, nothing overflows; backdrop-filter on children samples below stack, not parent paint boundary */
         transform: translateZ(0);
-        transition:
-          opacity 180ms ease,
-          visibility 180ms ease,
-          transform 180ms ease;
+        transition: opacity 180ms ease, visibility 180ms ease, transform 180ms ease;
       }
       #cc-overlay * {
-        pointer-events: auto; /* interactive children catch events */
+        pointer-events: auto;
         box-sizing: border-box;
       }
+      #cc-overlay #cc-panel:not(.open),
+      #cc-overlay #cc-panel:not(.open) * {
+        pointer-events: none !important;
+      }
 
-      /* ── Toggle tab ────────────────────────────────── */
       #cc-tab {
         display: inline-flex;
         align-items: center;
@@ -169,7 +203,7 @@
         padding: 7px 14px;
         background: rgba(15,18,23,0.92);
         border: 1px solid rgba(221,17,17,0.25);
-        border-radius: 999px;
+        border-radius: 9999px;
         color: #dce2eb;
         font-family: "Oxanium", sans-serif;
         font-size: 0.72rem;
@@ -178,32 +212,31 @@
         cursor: pointer;
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        transition: border-color 250ms ease, background 250ms ease, transform 250ms ease;
+        transition: transform 0.25s cubic-bezier(0.23,1,0.32,1),
+                    border-color 0.25s ease;
+        will-change: transform;
         box-shadow: 0 4px 20px rgba(0,0,0,0.6);
         margin-top: 0;
         align-self: flex-end;
       }
       #cc-tab:hover {
+        transform: translateY(-2px) scale(1.02);
         border-color: rgba(255,102,0,0.5);
-        background: rgba(22,26,34,0.96);
-        transform: translateY(-1px);
       }
 
-      /* ── Animated dot ──────────────────────────────── */
       .cc-dot {
         display: inline-block;
         width: 7px; height: 7px;
         border-radius: 50%;
         background: #3fb950;
         flex-shrink: 0;
-        position: relative;          /* anchor for ::after pulse ring */
+        position: relative;
         animation: ccDotFade 2s ease infinite;
         will-change: opacity;
       }
       .cc-dot.orange { background: #ff6600; animation-delay: 0.4s; }
       .cc-dot.red    { background: #ff3333; animation-delay: 0.8s; }
 
-      /* Pulse ring — scale+opacity only (GPU composited, no paint) */
       .cc-dot::after {
         content: "";
         position: absolute;
@@ -228,7 +261,6 @@
         100% { transform: scale(2.2); opacity: 0; }
       }
 
-      /* ── SHS pill in tab ───────────────────────────── */
       .cc-shs-pill {
         font-size: 0.6rem;
         font-weight: 700;
@@ -237,22 +269,22 @@
         border-radius: 999px;
         border: 1px solid;
       }
-      .cc-shs-pill.green  { color: #3fb950; border-color: rgba(63,185,80,0.3); background: rgba(63,185,80,0.08); }
-      .cc-shs-pill.amber  { color: #ff8833; border-color: rgba(255,136,51,0.3); background: rgba(255,136,51,0.08); }
-      .cc-shs-pill.red    { color: #ff3333; border-color: rgba(221,17,17,0.35); background: rgba(221,17,17,0.1); }
+      .cc-shs-pill.green  { color: #3fb950; border-color: rgba(63,185,80,0.3);   background: rgba(63,185,80,0.08); }
+      .cc-shs-pill.amber  { color: #ff8833; border-color: rgba(255,136,51,0.3);  background: rgba(255,136,51,0.08); }
+      .cc-shs-pill.red    { color: #ff3333; border-color: rgba(221,17,17,0.35);  background: rgba(221,17,17,0.1); }
 
-      /* ── Panel ─────────────────────────────────────── */
       #cc-panel {
-        width: 320px;
-        max-width: 0;
+        width: 0;
         overflow: hidden;
-        transition: max-width 0.38s cubic-bezier(0.2,0,0,1), opacity 0.25s ease;
         opacity: 0;
+        transition: width 0.42s cubic-bezier(0.23,1,0.32,1),
+                    opacity 0.25s ease;
+        will-change: width, opacity;
         pointer-events: none;
         align-self: flex-end;
       }
       #cc-panel.open {
-        max-width: 340px;
+        width: 340px;
         opacity: 1;
         pointer-events: auto;
       }
@@ -265,11 +297,8 @@
         -webkit-backdrop-filter: blur(16px);
         box-shadow: 0 16px 48px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,102,0,0.04);
         width: 320px;
-        margin-bottom: 0;
-        margin-top: 0;
       }
 
-      /* ── Panel header ──────────────────────────────── */
       .cc-panel-header {
         display: flex;
         align-items: center;
@@ -299,7 +328,6 @@
         white-space: nowrap;
       }
 
-      /* ── Metrics row ───────────────────────────────── */
       .cc-metrics {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -333,7 +361,6 @@
       .cc-metric-val.red    { color: #ff3333; }
       .cc-metric-val.cyan   { color: #00d4ff; }
 
-      /* ── Bar rows ──────────────────────────────────── */
       .cc-bar-row {
         display: flex;
         align-items: center;
@@ -361,8 +388,6 @@
         background: linear-gradient(90deg, #3fb950, #00d4ff);
         width: 100%;
         transition: width 0.9s cubic-bezier(0.2,0,0,1);
-        /* NOTE: will-change:width causes layout — omit it intentionally.
-           The bar is narrow; transition cost is negligible. */
       }
       .cc-bar-fill.degraded { background: linear-gradient(90deg, #ff8833, #ff3333); }
       .cc-bar-fill.danger   { background: linear-gradient(90deg, #dd1111, #ff6600); }
@@ -374,7 +399,6 @@
         text-align: right;
       }
 
-      /* ── Warden row ────────────────────────────────── */
       .cc-warden-row {
         display: flex;
         align-items: center;
@@ -425,11 +449,10 @@
         border: 1px solid;
         flex-shrink: 0;
       }
-      .cc-badge.dormant  { color: #3fb950; border-color: rgba(63,185,80,0.3); background: rgba(63,185,80,0.08); }
-      .cc-badge.primed   { color: #ff8833; border-color: rgba(255,136,51,0.3); background: rgba(255,136,51,0.08); }
-      .cc-badge.manifest { color: #ff3333; border-color: rgba(221,17,17,0.4); background: rgba(221,17,17,0.1); }
+      .cc-badge.dormant  { color: #3fb950; border-color: rgba(63,185,80,0.3);   background: rgba(63,185,80,0.08); }
+      .cc-badge.primed   { color: #ff8833; border-color: rgba(255,136,51,0.3);  background: rgba(255,136,51,0.08); }
+      .cc-badge.manifest { color: #ff3333; border-color: rgba(221,17,17,0.4);   background: rgba(221,17,17,0.1); }
 
-      /* ── Session entropy ───────────────────────────── */
       .cc-session-row {
         display: flex;
         align-items: center;
@@ -444,7 +467,6 @@
         letter-spacing: 0.04em;
       }
 
-      /* ── Mini log ──────────────────────────────────── */
       .cc-log {
         font-family: monospace;
         font-size: 0.65rem;
@@ -468,7 +490,6 @@
       .cc-log-line .er { color: #ff3333; font-weight: 700; }
       .cc-log-line .in { color: #00d4ff; font-weight: 700; }
 
-      /* ── Controls ──────────────────────────────────── */
       .cc-controls {
         display: flex;
         gap: 6px;
@@ -496,48 +517,39 @@
       }
       .cc-btn-link { color: rgba(138,149,165,0.7); }
 
-      /* ── Mobile: pin to bottom-left, panel opens upward ──── */
       @media (max-width: 640px) {
         #cc-overlay {
-          bottom: 24px;          /* same row as scroll-top (right side) — no conflict */
+          bottom: 24px;
           left: 12px;
-          right: auto;           /* don't stretch across — stay left-pinned */
+          right: auto;
           flex-direction: column-reverse;
           align-items: flex-start;
           z-index: 40;
           max-width: calc(100vw - 24px);
         }
-		#cc-tab {
-          /* Slightly smaller pill on mobile to save space */
+        #cc-tab {
           padding: 6px 12px;
           font-size: 0.68rem;
-          /* FIX: Override desktop align-end, force button to the left */
-          align-self: flex-start; 
+          align-self: flex-start;
         }
         #cc-panel {
-          max-width: none;
-          width: calc(100vw - 24px); /* full width minus left margin */
-          /* FIX: Anchor panel to the left so it opens rightward */
-          align-self: flex-start; 
+          width: 0;
+          align-self: flex-start;
         }
         #cc-panel.open {
-          max-width: min(360px, calc(100vw - 32px));
+          width: min(360px, calc(100vw - 32px));
           max-height: 600px;
+          align-self: flex-start;
         }
         .cc-panel-inner {
           width: 100%;
           max-width: 360px;
         }
-        /* your mobile nav/hamburger should exceed overlay */
-        .mobile-nav,
-        .mobile-menu,
-        .hamburger-panel,
-        .nav-drawer {
+        .mobile-nav, .mobile-menu, .hamburger-panel, .nav-drawer {
           z-index: 200;
         }
       }
 
-      /* ── Explicit hidden state ───────────────────────── */
       #cc-overlay.cc-hidden {
         opacity: 0 !important;
         visibility: hidden !important;
@@ -545,30 +557,63 @@
         transform: translateY(12px);
       }
 
-      /* ── Reduced motion ────────────────────────────── */
+      body.mobile-menu-open #cc-overlay,
+      body.menu-open         #cc-overlay,
+      body.nav-open          #cc-overlay,
+      body.hamburger-open    #cc-overlay {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+
+      .entropia-sigil {
+        will-change: transform, filter, opacity;
+        transition: filter 0.4s ease, transform 0.6s cubic-bezier(0.23,1,0.32,1);
+      }
+      .entropia-sigil.high-drift {
+        filter: contrast(1.15) brightness(1.08) hue-rotate(8deg);
+        animation: orp-sigil-glitch 0.4s linear infinite alternate;
+      }
+      @keyframes orp-sigil-glitch {
+        0%   { transform: translate(0,    0); }
+        20%  { transform: translate(-2px, 2px); }
+        40%  { transform: translate( 2px,-2px); }
+        60%  { transform: translate(-1px, 1px); }
+        100% { transform: translate( 1px,-1px); }
+      }
+
       @media (prefers-reduced-motion: reduce) {
-        .cc-dot, #cc-tab { animation: none !important; transition: none !important; }
-        #cc-panel { transition: none !important; }
-        .cc-bar-fill { transition: none !important; }
+        .cc-dot, #cc-tab  { animation: none !important; transition: none !important; }
+        #cc-panel          { transition: none !important; }
+        .cc-bar-fill       { transition: none !important; }
       }
     `;
     document.head.appendChild(style);
   }
 
   /* ── Log ────────────────────────────────────────────────── */
+  /* renderLog uses a DocumentFragment so the log container
+     is touched exactly once per call, not once per entry.    */
   function addLog(tagClass, tag, msg) {
-    const entry = { time: nowStr(), tagClass, tag, msg };
-    state.logEntries.unshift(entry);
+    state.logEntries.unshift({ time: nowStr(), tagClass, tag, msg });
     if (state.logEntries.length > 60) state.logEntries.pop();
     renderLog();
   }
 
   function renderLog() {
-    const el = document.getElementById("cc-log");
+    const el = _dom().log;
     if (!el) return;
-    el.innerHTML = state.logEntries
-      .map(e => `<div class="cc-log-line"><span class="t">${e.time}</span> <span class="${e.tagClass}">${e.tag}</span> ${e.msg}</div>`)
-      .join("");
+
+    // Build all lines in a fragment — single reflow at appendChild
+    const frag = document.createDocumentFragment();
+    state.logEntries.forEach(e => {
+      const line = document.createElement("div");
+      line.className = "cc-log-line";
+      line.innerHTML = `<span class="t">${e.time}</span> <span class="${e.tagClass}">${e.tag}</span> ${e.msg}`;
+      frag.appendChild(line);
+    });
+
+    el.replaceChildren(frag);  // single DOM mutation instead of innerHTML reassignment
   }
 
   /* ── Warden config ──────────────────────────────────────── */
@@ -580,18 +625,14 @@
 
   function applyWarden(s) {
     const cfg = WARDEN[s];
-    const icon  = document.getElementById("cc-warden-icon");
-    const title = document.getElementById("cc-warden-title");
-    const desc  = document.getElementById("cc-warden-desc");
-    const badge = document.getElementById("cc-warden-badge");
-    const row   = document.getElementById("cc-warden-row");
-    if (!icon) return;
-    icon.textContent   = cfg.icon;
-    title.textContent  = cfg.title;
-    desc.textContent   = cfg.desc;
-    badge.textContent  = s;
-    badge.className    = `cc-badge ${cfg.cls}`;
-    row.className      = `cc-warden-row${s === "MANIFEST" ? " alert" : ""}`;
+    const d   = _dom();
+    if (!d.wardenIcon) return;
+    d.wardenIcon.textContent  = cfg.icon;
+    d.wardenTitle.textContent = cfg.title;
+    d.wardenDesc.textContent  = cfg.desc;
+    d.wardenBadge.textContent = s;
+    d.wardenBadge.className   = `cc-badge ${cfg.cls}`;
+    d.wardenRow.className     = `cc-warden-row${s === "MANIFEST" ? " alert" : ""}`;
   }
 
   /* ── SHS ────────────────────────────────────────────────── */
@@ -604,47 +645,37 @@
 
   /* ── Update DOM ─────────────────────────────────────────── */
   function update() {
-    const g = id => document.getElementById(id);
+    const d = _dom();
 
     // ΔS
-    const dsEl = g("cc-ds");
-    if (dsEl) dsEl.textContent = fmt4(state.deltaS);
+    if (d.ds) d.ds.textContent = fmt4(state.deltaS);
 
     // ρ(x)
-    const rhoEl = g("cc-rho");
-    if (rhoEl) { rhoEl.textContent = fmt1(state.rho); rhoEl.className = `cc-metric-val cyan`; }
-    const rhoBar = g("cc-rho-bar");
-    if (rhoBar) {
-      rhoBar.style.width = clamp(state.rho, 2, 100) + "%";
-      rhoBar.className   = `cc-bar-fill${state.rho < 60 ? " degraded" : ""}`;
+    if (d.rho) { d.rho.textContent = fmt1(state.rho); d.rho.className = "cc-metric-val cyan"; }
+    if (d.rhoBar) {
+      d.rhoBar.style.width = clamp(state.rho, 2, 100) + "%";
+      d.rhoBar.className   = `cc-bar-fill${state.rho < 60 ? " degraded" : ""}`;
     }
-    const rhoPct = g("cc-rho-pct");
-    if (rhoPct) rhoPct.textContent = Math.round(state.rho) + "%";
+    if (d.rhoPct) d.rhoPct.textContent = Math.round(state.rho) + "%";
 
-    // SHS
+    // SHS — only trigger log + DOM update when it actually changes
     const newSHS = calcSHS(state.rho);
     if (newSHS !== state.shs) {
       addLog(newSHS === "GREEN" ? "ok" : newSHS === "AMBER" ? "wn" : "er",
         "SHS", `${state.shs}→${newSHS}`);
       state.shs = newSHS;
     }
-    const shsEl = g("cc-shs");
-    if (shsEl) { shsEl.textContent = state.shs; shsEl.className = `cc-metric-val ${SHS_COLOR[state.shs]}`; }
-    // Tab pill
-    const pill = g("cc-tab-shs");
-    if (pill) { pill.textContent = state.shs; pill.className = `cc-shs-pill ${SHS_COLOR[state.shs]}`; }
+    if (d.shs) { d.shs.textContent = state.shs; d.shs.className = `cc-metric-val ${SHS_COLOR[state.shs]}`; }
+    if (d.pill) { d.pill.textContent = state.shs; d.pill.className = `cc-shs-pill ${SHS_COLOR[state.shs]}`; }
 
     // Warden %
-    const wEl  = g("cc-wpct");
-    if (wEl) {
+    if (d.wpct) {
       const wpct = Math.round(state.warden);
-      wEl.textContent = wpct + "%";
-      wEl.className   = `cc-metric-val${state.warden >= 72 ? " red" : state.warden >= 45 ? " orange" : ""}`;
+      d.wpct.textContent = wpct + "%";
+      d.wpct.className   = `cc-metric-val${state.warden >= 72 ? " red" : state.warden >= 45 ? " orange" : ""}`;
     }
-    const wBar = g("cc-w-bar");
-    if (wBar) wBar.style.width = clamp(state.warden, 0, 100) + "%";
-    const wPct = g("cc-w-pct");
-    if (wPct) wPct.textContent = Math.round(state.warden) + "%";
+    if (d.wBar)  d.wBar.style.width  = clamp(state.warden, 0, 100) + "%";
+    if (d.wPct)  d.wPct.textContent  = Math.round(state.warden) + "%";
 
     // Warden state machine
     const newW = state.warden >= 72 ? "MANIFEST" : state.warden >= 45 ? "PRIMED" : "DORMANT";
@@ -659,22 +690,22 @@
     // Session entropy
     state.sessionEntropy += state.deltaS * 0.01;
     saveSessionEntropy(state.sessionEntropy);
-    const seEl = g("cc-session-val");
-    if (seEl) seEl.textContent = fmt4(state.sessionEntropy);
+    if (d.sessionVal) d.sessionVal.textContent = fmt4(state.sessionEntropy);
 
     // Page label
-    const pageEl = g("cc-page-label");
-    if (pageEl) {
+    if (d.pageLabel) {
       const pg = window.location.pathname.split("/").pop() || "index.html";
-      pageEl.textContent = pg.replace(".html","").toUpperCase() || "INDEX";
+      d.pageLabel.textContent = pg.replace(".html","").toUpperCase() || "INDEX";
     }
+
+    _syncAsciiPanel(state.shs);
   }
 
   /* ── Inject delta ───────────────────────────────────────── */
   function injectDelta(ds) {
-    state.deltaS  = clamp(ds, 0, 0.25);
-    state.rho     = clamp(state.rho - ds * 160, 0, 100);
-    state.warden  = clamp(state.warden + ds * 300, 0, 100);
+    state.deltaS = clamp(ds, 0, 0.25);
+    state.rho    = clamp(state.rho    - ds * 160, 0, 100);
+    state.warden = clamp(state.warden + ds * 300, 0, 100);
     addLog("in", "INF", `ΔS:${fmt4(ds)} ρ:${fmt1(state.rho)}`);
     update();
   }
@@ -682,23 +713,93 @@
   /* ── Passive decay ──────────────────────────────────────── */
   function decay() {
     if (state.wardenState === "MANIFEST") return;
-    state.rho    = clamp(state.rho    + 0.10, 0, 100);
-    state.warden = clamp(state.warden - 0.40, 0, 100);
+    state.rho    = clamp(state.rho    + 0.10,   0, 100);
+    state.warden = clamp(state.warden - 0.40,   0, 100);
     state.deltaS = clamp(state.deltaS - 0.0001, 0, 1);
     update();
   }
 
   /* ── Session entropy → Warden pre-load ─────────────────── */
-  // If the user has accumulated significant session entropy across
-  // pages, pre-heat the Warden activation percentage.
   function applySessionPressure() {
     const pressure = clamp(state.sessionEntropy / 500, 0, 1);
     if (pressure > 0.05) {
-      state.warden = clamp(pressure * 65, 0, 65); // max 65% from session (below trigger)
+      state.warden = clamp(pressure * 65, 0, 65);
       state.rho    = clamp(100 - pressure * 40, 60, 100);
       addLog("wn", "SES", `Session pressure: ${(pressure * 100).toFixed(0)}%`);
       update();
     }
+  }
+
+  /* ── ASCII panel live sync ──────────────────────────────── */
+  const ASCII_SHS_STYLE = {
+    GREEN:  { color: '#3fb950', glow: 'rgba(63,185,80,0.45)',  char: '~', label: '[= STAR =]',  core: '[ CORE ]' },
+    AMBER:  { color: '#ff8833', glow: 'rgba(255,136,51,0.5)',  char: '≈', label: '[≈ STAR ≈]',  core: '[ CORE ]' },
+    RED:    { color: '#ff3333', glow: 'rgba(221,17,17,0.6)',   char: '!', label: '[! STAR !]',  core: '[!CORE!]' },
+  };
+  const GLITCH_POOL = ['█','▓','▒','░','╳','╬','╫','╪','║','═','╔','╗'];
+  let _asciiFrame  = 0;
+  let _lastAsciiSHS = '';  // guard: skip full rebuild when SHS hasn't changed AND drift is stable
+
+  function _syncAsciiPanel(shs) {
+    const panel = _dom().asciiPanel;
+    if (!panel) return;
+
+    const key  = (shs === 'AMBER') ? 'AMBER' : (shs === 'RED') ? 'RED' : 'GREEN';
+    const cfg  = ASCII_SHS_STYLE[key];
+    _asciiFrame++;
+
+    const drift = parseFloat(
+      document.querySelector('.entropia-sigil')
+        ?.style.getPropertyValue('--drift-intensity') || '0'
+    );
+
+    // Only update glow / color strings when SHS state changes — not every tick
+    if (shs !== _lastAsciiSHS) {
+      _lastAsciiSHS = shs;
+      panel.style.color      = cfg.color;
+      panel.style.textShadow = `0 0 6px ${cfg.glow}, 0 0 14px ${cfg.glow.replace(/[\d.]+\)$/, '0.2)')}`;
+    }
+
+    const wave  = _buildWave(cfg.char, drift, _asciiFrame);
+    const wL    = (key === 'RED' && Math.random() > 0.6) ? _glitchStr('//', drift) : '//';
+    const wR    = (key === 'RED' && Math.random() > 0.6) ? _glitchStr('//', drift) : '//';
+    const coreLabel = (drift > 0.55 && Math.random() > 0.5)
+      ? _glitchStr(cfg.core, drift) : cfg.core;
+
+    panel.textContent =
+`    ${wL}              ${wR}
+   ${wL}              ${wR}
+  ${wL}              ${wR}
+ ${wL}              ${wR}
+ ||      __________      ||
+ ||     /          \\     ||
+ ||    |  ${wave}  |    ||
+ ||    | ( ( || ) ) |    ||
+ ||    |     ||     |    ||
+  \\\\    \\__________/    //
+   \\\\________||________//
+        ${cfg.label}
+       / ${coreLabel} \\
+      /____________\\`;
+  }
+
+  function _buildWave(char, drift, frame) {
+    const len   = 8;
+    const shift = frame % len;
+    let   out   = '';
+    for (let i = 0; i < len; i++) {
+      out += ((i + shift) % len < 2 && drift > 0.25) ? char : '~';
+    }
+    return out;
+  }
+
+  function _glitchStr(str, drift) {
+    if (drift < 0.4) return str;
+    return str.split('').map(c =>
+      (Math.random() < drift * 0.4)
+        ? GLITCH_POOL[Math.floor(Math.random() * GLITCH_POOL.length)]
+        : c
+    ).join('');
   }
 
   /* ── Init ───────────────────────────────────────────────── */
@@ -706,33 +807,28 @@
     buildStyles();
     buildOverlay();
 
-    // ── Mobile menu sync observer ─────────────────────
+    // Mobile menu sync — hide overlay when hamburger is open
     const overlay = document.getElementById("cc-overlay");
     const menuObserver = new MutationObserver(() => {
       const menuOpen = document.body.classList.contains("mobile-menu-open");
       overlay?.classList.toggle("cc-hidden", menuOpen);
       if (menuOpen && state.panelOpen) {
         state.panelOpen = false;
-        const panel = document.getElementById("cc-panel");
-        const tab   = document.getElementById("cc-tab");
-        panel?.classList.remove("open");
-        tab?.setAttribute("aria-expanded", "false");
-        panel?.setAttribute("aria-hidden", "true");
+        const d = _dom();
+        d.panel?.classList.remove("open");
+        d.tab?.setAttribute("aria-expanded", "false");
+        d.panel?.setAttribute("aria-hidden", "true");
       }
     });
-    menuObserver.observe(document.body, {
-      attributes: true,
-      attributeFilter: ["class"]
-    });
+    menuObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
 
     // Tab toggle
-    const tab   = document.getElementById("cc-tab");
-    const panel = document.getElementById("cc-panel");
-    tab?.addEventListener("click", () => {
+    const d = _dom();
+    d.tab?.addEventListener("click", () => {
       state.panelOpen = !state.panelOpen;
-      panel?.classList.toggle("open", state.panelOpen);
-      tab.setAttribute("aria-expanded", state.panelOpen ? "true" : "false");
-      panel?.setAttribute("aria-hidden", state.panelOpen ? "false" : "true");
+      d.panel?.classList.toggle("open", state.panelOpen);
+      d.tab.setAttribute("aria-expanded", state.panelOpen ? "true" : "false");
+      d.panel?.setAttribute("aria-hidden", state.panelOpen ? "false" : "true");
     });
 
     // Inject button
@@ -758,7 +854,7 @@
       }
     });
 
-    // Scroll → entropy
+    // Scroll → entropy (passive, no DOM writes in listener)
     let lastY = window.scrollY, accum = 0;
     window.addEventListener("scroll", () => {
       const delta = Math.abs(window.scrollY - lastY);
@@ -769,20 +865,57 @@
       }
     }, { passive: true });
 
-    // Click entropy (light weight — 1 click = tiny ΔS)
+    // Click entropy
     document.addEventListener("click", (e) => {
-      if (e.target.closest("#cc-overlay")) return; // ignore own UI
+      if (e.target.closest("#cc-overlay")) return;
       injectDelta(0.002 + Math.random() * 0.004);
     });
 
-    // Passive decay loop
-    state.decayTimer = setInterval(decay, 900);
+    /* ── rAF-capped decay + sigil sync loop ─────────────────
+       Decay fires every ~900ms; sigil+ASCII sync every ~800ms.
+       All writes are batched here — no setInterval in this file.
+    ─────────────────────────────────────────────────────────── */
+    let _lastDecayTs  = 0;
+    let _lastSigilTs  = 0;
+    let _lastSigilSHS = '';
 
-    // Apply cross-page session pressure
+    function _rafLoop(ts) {
+      if (ts - _lastDecayTs >= 900) {
+        decay();
+        _lastDecayTs = ts;
+      }
+
+      if (ts - _lastSigilTs >= 800) {
+        const pill = _dom().pill;
+        if (pill) {
+          const shs = pill.textContent.trim().toUpperCase();
+          if (shs && shs !== _lastSigilSHS) {
+            _lastSigilSHS = shs;
+            if (typeof window.updateSigilFromSHS === 'function') {
+              window.updateSigilFromSHS(shs === 'AMBER' ? 'YELLOW' : shs);
+            }
+            _syncAsciiPanel(shs);
+          }
+        }
+
+        const drift = clamp(state.deltaS * 4 + (100 - state.rho) / 100, 0, 1);
+        _getSigils().forEach(s => {
+          s.classList.toggle('high-drift', drift > 0.55);
+        });
+
+        _lastSigilTs = ts;
+      }
+
+      state._rafHandle = requestAnimationFrame(_rafLoop);
+    }
+    state._rafHandle = requestAnimationFrame(_rafLoop);
+    window._orpRafActive = true; // signal to entropia-sigil.js: its setInterval is suppressed
+
     applySessionPressure();
+    _syncAsciiPanel('GREEN');
 
-    // Initial log
-    const page = (window.location.pathname.split("/").pop() || "index.html").replace(".html","").toUpperCase();
+    const page = (window.location.pathname.split("/").pop() || "index.html")
+      .replace(".html","").toUpperCase();
     addLog("ok", "CC", `Initialized on ${page}`);
     addLog("in", "J⊥", "VORTEX detection: ENGAGED");
     addLog("ok", "ISO", "Epistemic isolation: NOMINAL");

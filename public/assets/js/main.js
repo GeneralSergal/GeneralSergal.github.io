@@ -276,6 +276,38 @@ if (hamburgerBtn && mobileNav) {
     });
   }
 
+  /* ── Glyph: JS-driven float + scroll parallax ────────── */
+  (function () {
+    const glyphs = Array.from(document.querySelectorAll('.glyph'));
+    if (!glyphs.length) return;
+
+    // Per-glyph config: [floatAmplitude px, floatPeriod ms, scrollSpeed multiplier]
+    const cfg = [
+      [18, 26000, 0.18],
+      [14, 31000, 0.10],
+      [20, 34000, 0.22],
+      [16, 28000, 0.13],
+    ];
+
+    const start = performance.now();
+
+    function tick(now) {
+      const scrollY = window.scrollY;
+      const elapsed = now - start;
+
+      glyphs.forEach((g, i) => {
+        const [amp, period, speed] = cfg[i] ?? [16, 28000, 0.12];
+        const floatY  = Math.sin((elapsed / period) * 2 * Math.PI) * amp;
+        const scrollY_offset = scrollY * speed;
+        g.style.transform = `translateX(-50%) translateY(${floatY + scrollY_offset}px)`;
+      });
+
+      requestAnimationFrame(tick);
+    }
+
+    requestAnimationFrame(tick);
+  })();
+
   /* ── Intersection Observer reveal ───────────────────── */
   const observer =
     new IntersectionObserver(entries => {

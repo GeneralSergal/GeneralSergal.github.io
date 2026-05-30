@@ -341,18 +341,13 @@ a:hover { color: var(--accent-orange-bright); }
   to   { transform: rotate(360deg); }
 }
 
-.glyph-layer { position: fixed; inset: 0; z-index: -2; pointer-events: none; overflow: hidden; opacity: 0.05; contain: strict; }
-.glyph { position: absolute; color: var(--primary); font-family: Oxanium, sans-serif; font-size: 14px; letter-spacing: 0.12em; animation: drift linear infinite; will-change: transform; contain: layout style; }
-.glyph:nth-child(1) { top: 12%; left: 8%; animation-duration: 26s; }
-.glyph:nth-child(2) { top: 34%; right: 10%; animation-duration: 31s; }
-.glyph:nth-child(3) { bottom: 18%; left: 14%; animation-duration: 34s; }
-.glyph:nth-child(4) { bottom: 10%; right: 20%; animation-duration: 28s; }
-
-@keyframes drift {
-  0%   { transform: translateY(0px); }
-  50%  { transform: translateY(-18px); }
-  100% { transform: translateY(0px); }
-}
+.glyph-layer { position: fixed; inset: 0; z-index: -2; pointer-events: none; overflow: hidden; opacity: 0.07; }
+/* JS owns transform entirely — no CSS animation here */
+.glyph { position: absolute; color: var(--primary); font-family: Oxanium, sans-serif; font-size: 14px; letter-spacing: 0.12em; will-change: transform; left: 50%; text-align: center; white-space: nowrap; }
+.glyph:nth-child(1) { top: 12%; }
+.glyph:nth-child(2) { top: 34%; }
+.glyph:nth-child(3) { top: 55%; }
+.glyph:nth-child(4) { top: 74%; }
 
 /* ── Layout ────────────────────────────────────────────── */
 .container { width: min(1280px, calc(100% - 48px)); margin: 0 auto; }

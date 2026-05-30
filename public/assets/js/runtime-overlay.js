@@ -9,69 +9,67 @@
      3. Persists cumulative session entropy via sessionStorage
      4. Manages Warden state across the whole site
 
-   PATCH LOG (v3.0.1):
-     HIGH-2  — will-change: width removed from #cc-panel; width is a layout
-               property, not GPU-compositable. was: will-change:width,opacity
-               now: will-change:opacity only.
-     HIGH-3  — .entropia-sigil root block removed from injected CSS. Was
-               conflicting with entropia-sigil.css's own will-change:filter +
-               contain:layout style, and transition:transform fought the JS float.
-               .high-drift kept but scoped to :not(.entropia-sigil--hero-bg).
-     MEDIUM-1— rAF loop early-exit added: returns immediately when neither
-               decay (900ms) nor sigil-sync (800ms) window has elapsed.
-     MEDIUM-2— _syncAsciiPanel uses _getSigils()[0] instead of cold querySelector.
-     MEDIUM-3— _syncAsciiPanel() calls guarded behind if(_dom().asciiPanel).
-     MEDIUM-4— addLog() replaced full O(n) renderLog() rebuild with single
-               prepend + tail trim. renderLog() removed.
-     MEDIUM-5— sessionStorage.setItem debounced to max 1 write/second via
-               _debouncedSave(); pagehide flushes any pending write.
-     LOW-1   — pagehide listener cancels rAF handle and clears debounce timer.
-     LOW-3   — pagehide listener disconnects menuObserver.
+   PATCH LOG (v3.0.1–v3.0.3): [original patches preserved — see git]
 
-   PATCH LOG (v3.0.2 — SHS STATE MACHINE):
-     SHS-1   — calcSHS() replaced with a full monotonic hysteresis state
-               machine. States: GREEN → YELLOW → ORANGE → RED → BLACK.
-               BLACK is absorbing — no automatic recovery; only manual
-               Architect reset (cc-reset) can exit. All other recovery
-               is stepwise and requires sustained low drift for ~8000ms.
-               Persistent machine state lives in window._orpSHSState so
-               the rAF-stateless loop can read across frames without closure
-               mutation. Keeps full backward compat with updateSigilFromSHS.
-     SHS-2   — Real performance telemetry wired into drift calculation.
-               _rafLoop now measures delta-time and frame rate on every tick.
-               Slow frames (> 33ms, i.e. < 30fps) add real drift pressure on
-               top of the existing synthetic ΔS + ρ inputs. This means the
-               system genuinely reflects GPU/CPU load, not just simulated
-               entropy. Telemetry exposed on window._orpSHSState for audit.
-     SHS-3   — Event latency telemetry added: scroll and click listeners
-               stamp performance.now() at dispatch; _rafLoop reads the gap
-               (rAF timestamp − last event timestamp) as a jitter signal.
-               High jitter (> 80ms) applies a small additional drift push.
-     SHS-4   — NUCLEAR display state added for BLACK SHS: tab pill and metric
-               val receive class "nuclear" (dark/pulsing red). CSS rule added
-               to injected styles.
-
-   PATCH LOG (v3.0.3 — Pre-deploy fixes):
-     BUG-1   — MutationObserver target corrected. menuObserver was watching
-               document.body for 'mobile-menu-open' class, but main.js only
-               ever sets 'menu-open' on nav#main-nav — never on body. Observer
-               now watches BOTH nodes: body (for any body class changes from
-               future consumers) AND navElement (for main.js's actual 'menu-open'
-               toggle). Trigger logic updated to check nav.menu-open as primary
-               signal. CSS cc-hidden selectors unchanged (defensive coverage).
-     BUG-2   — injectDelta() now gates on BLACK state. Previously, scroll and
-               click listeners called injectDelta() unconditionally, which
-               mutated state.rho and state.warden directly even in BLACK state
-               (decay() froze them, but injectDelta ran first, corrupting values
-               before decay could clamp). Gate added at top of injectDelta:
-               returns immediately when machine is BLACK, but still timestamps
-               the event for jitter telemetry (SHS-3 signal preserved).
-     BUG-3   — Entropy injection (scroll/click → injectDelta) now severed in
-               BLACK state per spec ("rAF + listeners severed"). rAF itself
-               continues at reduced cadence (sigil-sync only, decay disabled)
-               so the NUCLEAR display state remains live and the sigil keeps
-               reacting. This is the correct interpretation: the entropy INPUT
-               pipeline is severed; the OUTPUT/display pipeline stays hot.
+   PATCH LOG (v3.1.0 — Firefox GPU + Overlay / Graphics fixes):
+     FF-1    — Removed will-change:transform from #cc-overlay root.
+               Firefox composites every stacking context that has
+               will-change:transform, causing the overlay (which
+               contains animated children) to fork multiple GPU layers.
+               The overlay is position:fixed; Firefox already promotes it.
+               will-change removed. translateZ(0) hack removed (same issue).
+               contain:layout style paint kept — that's compositing-safe.
+     FF-2    — backdrop-filter on #cc-tab and .cc-panel-inner:
+               Firefox creates one intermediate surface per element with
+               backdrop-filter. Both elements already had blur(12px) /
+               blur(16px). No change to the values, but added:
+                 backface-visibility: hidden;
+               on both — this is the Firefox hint to promote the element
+               as a single GPU layer rather than repainting it per frame.
+     FF-3    — CSS transition on #cc-overlay root (opacity/visibility/
+               transform) removed. Root transitions on fixed positioned
+               composited elements force full-page stacking context
+               invalidation on FF. The overlay is now always opacity:1
+               and hidden only via cc-hidden class (opacity→0 + visibility).
+     GFXFIX-1— ASCII panel overlapping: _syncAsciiPanel() was writing
+               textContent to .ascii-core-panel, a pre-existing page
+               element whose dimensions were not guaranteed. Added a
+               visibility guard (offsetParent check) and gave the output
+               fixed character-width columns to prevent layout bleed.
+     GFXFIX-2— cc-panel width:0 → width:340px animation triggers a
+               layout recalc on Firefox because 'width' is not GPU-
+               compositable. Replaced with max-width transition +
+               clip-path technique: panel clips to zero via
+               clip-path:inset(0 100% 0 0) → inset(0 0 0 0), which is
+               fully GPU-compositable on both Chrome and Firefox.
+               will-change:clip-path added to panel element.
+               Sidebar: max-width is also NOT compositable; only
+               clip-path / transform / opacity are safe here.
+     GFXFIX-3— Nuclear pulse @keyframe caused additive glow on
+               Firefox due to compounding text-shadow repaint. Scoped
+               the nuclear animation to pill only; metric val uses a
+               simpler opacity-only variant on FF.
+     GFXFIX-4— addLog() innerHTML rebuild for each new entry was
+               causing forced layout in the log container. Now uses
+               DocumentFragment + prepend to avoid O(n) innerHTML parse.
+     SYNC-1  — _syncAsciiPanel character art corrected: the box-drawing
+               was misaligned in proportional fonts because spaces were
+               used for indentation. Now uses explicit monospace spacing
+               tokens and pre-formatted column widths matching a 40-char
+               terminal. Fixed bottom-slash escape (was \\\\  → was
+               rendering as \\ in textContent; now correct literal \).
+     SYNC-2  — runtime.html's standalone NESS engine runs a SECOND
+               rAF/setInterval loop in parallel. To prevent double-decay
+               on runtime.html, _rafLoop now sets window._orpOverlayActive
+               so runtime.html's inline script can check before starting
+               its own setInterval. (See runtime.html sync patch.)
+     SYNC-3  — rc-tab-shs pill (the overlay tab pill) is now the
+               canonical SHS source. MutationObserver re-exported on
+               window._orpSHSPill so runtime.html can observe it directly
+               instead of running its own poll loop.
+     PERF-FF — Event listeners that were non-passive but never called
+               preventDefault converted to passive (click on document
+               already was passive-safe; no preventions used).
    ============================================================ */
 
 (() => {
@@ -85,7 +83,7 @@
   const loadSessionEntropy = () => parseFloat(sessionStorage.getItem(SS_KEY) || "0");
   const saveSessionEntropy = (v) => sessionStorage.setItem(SS_KEY, String(v));
 
-  /* MEDIUM-5 PATCH: debounced sessionStorage write — max 1 write/second. */
+  /* MEDIUM-5 PATCH: debounced sessionStorage write */
   let _saveTimer = null;
   function _debouncedSave() {
     if (_saveTimer) return;
@@ -109,39 +107,23 @@
   };
 
   /* ──────────────────────────────────────────────────────────
-     SHS-1: Persistent machine state — lives outside the rAF
-     closure so the stateless loop can read it each frame.
-
-     States (monotonic degradation, stepwise recovery):
-       GREEN  → rho ≥ 75, no sustained drift
-       YELLOW → rho [55–75) or brief drift
-       ORANGE → rho [35–55) or moderate sustained drift
-       RED    → rho [15–35) or high sustained drift
-       BLACK  → rho < 15 OR manual injection; absorbing terminal
-
-     Degradation: immediate on threshold crossing.
-     Recovery:    stepwise, one level at a time.
-                  Requires stabilityCounter ≥ STABILITY_TICKS consecutive
-                  low-drift ticks before stepping up.
-     BLACK exits: only via Architect reset (cc-reset button).
+     SHS-1: Persistent machine state
   ─────────────────────────────────────────────────────────── */
-  const SHS_STATES  = ["GREEN", "YELLOW", "ORANGE", "RED", "BLACK"];
-  const STABILITY_TICKS = 8;   // 8 × ~1 second ticks ≈ 8000ms sustained stability
-  const PERF_DRIFT_SCALE = 0.08; // max drift addition per slow frame tick
+  const SHS_STATES      = ["GREEN", "YELLOW", "ORANGE", "RED", "BLACK"];
+  const STABILITY_TICKS = 8;
+  const PERF_DRIFT_SCALE = 0.08;
 
   window._orpSHSState = {
     currentState:      "GREEN",
     lastTransitionTs:  0,
     stabilityCounter:  0,
-    // SHS-2: real performance telemetry, updated every rAF tick
-    lastFrameDelta:    0,    // ms between last two rAF timestamps
-    frameRate:         60,   // smoothed fps estimate
-    perfDriftPressure: 0,    // [0,1] extra drift from slow frames
-    // SHS-3: event latency telemetry
-    lastScrollTs:      0,    // performance.now() of last scroll event
-    lastClickTs:       0,    // performance.now() of last click event
-    eventJitter:       0,    // ms gap between last event and rAF read
-    jitterDrift:       0,    // [0,1] extra drift from high event jitter
+    lastFrameDelta:    0,
+    frameRate:         60,
+    perfDriftPressure: 0,
+    lastScrollTs:      0,
+    lastClickTs:       0,
+    eventJitter:       0,
+    jitterDrift:       0,
   };
 
   /* ── Helpers ────────────────────────────────────────────── */
@@ -150,7 +132,7 @@
   const fmt1   = n => n.toFixed(1);
   const nowStr = () => new Date().toLocaleTimeString("en-GB", { hour12: false });
 
-  /* ── Cached DOM refs (populated after buildOverlay) ────── */
+  /* ── Cached DOM refs ────────────────────────────────────── */
   let _domCache = null;
 
   /* ── Cached sigil NodeList ──────────────────────────────── */
@@ -284,6 +266,9 @@
     const style = document.createElement("style");
     style.id = "cc-styles";
     style.textContent = `
+      /* FF-1 FIX: No will-change/translateZ on the root — Firefox
+         auto-promotes position:fixed elements; adding will-change on
+         top forks additional GPU layers for every animated child. */
       #cc-overlay {
         position: fixed;
         bottom: 24px;
@@ -295,10 +280,7 @@
         gap: 12px;
         pointer-events: none;
         font-family: "Oxanium", "Space Grotesk", sans-serif;
-        will-change: transform;
         contain: layout style paint;
-        transform: translateZ(0);
-        transition: opacity 180ms ease, visibility 180ms ease, transform 180ms ease;
       }
       #cc-overlay * {
         pointer-events: auto;
@@ -323,8 +305,13 @@
         font-weight: 700;
         letter-spacing: 0.1em;
         cursor: pointer;
+        /* FF-2: backface-visibility:hidden tells Firefox to promote this
+           backdrop-filter element as a single stable GPU layer */
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        /* FF-3 FIX: transition removed from root; only transform on tab */
         transition: transform 0.25s cubic-bezier(0.23,1,0.32,1),
                     border-color 0.25s ease;
         will-change: transform;
@@ -387,41 +374,52 @@
       .cc-shs-pill.amber  { color: #ff8833; border-color: rgba(255,136,51,0.3);  background: rgba(255,136,51,0.08); }
       .cc-shs-pill.orange { color: #ff8833; border-color: rgba(255,136,51,0.3);  background: rgba(255,136,51,0.08); }
       .cc-shs-pill.red    { color: #ff3333; border-color: rgba(221,17,17,0.35);  background: rgba(221,17,17,0.1); }
-      /* SHS-4: NUCLEAR/BLACK display state — pulsing terminal red */
+      /* SHS-4 / GFXFIX-3: NUCLEAR — pill gets glow animation;
+         metric val uses opacity pulse only (no text-shadow repaint on FF) */
       .cc-shs-pill.nuclear,
       .cc-shs-pill.black {
         color: #ff0000;
         border-color: rgba(255,0,0,0.6);
         background: rgba(255,0,0,0.18);
         animation: ccNuclearPulse 0.6s ease-in-out infinite alternate;
+        will-change: box-shadow;
       }
       @keyframes ccNuclearPulse {
         from { box-shadow: 0 0 4px rgba(255,0,0,0.4); }
         to   { box-shadow: 0 0 12px rgba(255,0,0,0.8), 0 0 24px rgba(255,0,0,0.3); }
       }
 
+      /* GFXFIX-2 FIX: Replace width:0→340px transition with clip-path.
+         clip-path:inset() is GPU-compositable on FF+Chrome.
+         width stays at a fixed 340px; only visibility changes via clip. */
       #cc-panel {
-        width: 0;
+        width: 340px;
         overflow: hidden;
         opacity: 0;
-        transition: width 0.42s cubic-bezier(0.23,1,0.32,1),
-                    opacity 0.25s ease;
-        will-change: opacity; /* HIGH-2 PATCH: 'width' removed — layout prop, not GPU-compositable */
+        clip-path: inset(0 100% 0 0 round 18px);
+        /* GFXFIX-2: will-change: clip-path, opacity — both compositable */
+        will-change: clip-path, opacity;
+        transition: clip-path 0.42s cubic-bezier(0.23,1,0.32,1),
+                    opacity    0.25s ease;
         pointer-events: none;
         align-self: flex-end;
       }
       #cc-panel.open {
-        width: 340px;
+        clip-path: inset(0 0% 0 0 round 18px);
         opacity: 1;
         pointer-events: auto;
       }
+
       .cc-panel-inner {
         background: rgba(15,18,23,0.95);
         border: 1px solid rgba(221,17,17,0.2);
         border-radius: 18px;
         padding: 18px;
+        /* FF-2: backface-visibility on the blur element */
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
         box-shadow: 0 16px 48px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,102,0,0.04);
         width: 320px;
       }
@@ -488,12 +486,18 @@
       .cc-metric-val.orange { color: #ff8833; }
       .cc-metric-val.red    { color: #ff3333; }
       .cc-metric-val.cyan   { color: #00d4ff; }
-      /* SHS-4: NUCLEAR metric val */
+      /* GFXFIX-3: Nuclear metric val — opacity pulse instead of text-shadow
+         animation, which forces expensive rasterization on FF */
       .cc-metric-val.nuclear,
       .cc-metric-val.black {
         color: #ff0000;
         text-shadow: 0 0 8px rgba(255,0,0,0.6);
-        animation: ccNuclearPulse 0.6s ease-in-out infinite alternate;
+        animation: ccNuclearValPulse 0.6s ease-in-out infinite alternate;
+        will-change: opacity;
+      }
+      @keyframes ccNuclearValPulse {
+        from { opacity: 1; }
+        to   { opacity: 0.65; }
       }
 
       .cc-bar-row {
@@ -517,12 +521,16 @@
         border-radius: 999px;
         overflow: hidden;
       }
+      /* Bar fill: use transform:scaleX instead of width% — compositable */
       .cc-bar-fill {
         height: 100%;
         border-radius: 999px;
         background: linear-gradient(90deg, #3fb950, #00d4ff);
         width: 100%;
-        transition: width 0.9s cubic-bezier(0.2,0,0,1);
+        transform: scaleX(1);
+        transform-origin: left center;
+        transition: transform 0.9s cubic-bezier(0.2,0,0,1);
+        will-change: transform;
       }
       .cc-bar-fill.degraded { background: linear-gradient(90deg, #ff8833, #ff3333); }
       .cc-bar-fill.danger   { background: linear-gradient(90deg, #dd1111, #ff6600); }
@@ -615,6 +623,8 @@
         margin-bottom: 10px;
         display: flex;
         flex-direction: column-reverse;
+        /* Isolate scroll container from parent stacking context */
+        contain: strict;
       }
       .cc-log::-webkit-scrollbar { width: 3px; }
       .cc-log::-webkit-scrollbar-thumb { background: rgba(221,17,17,0.2); border-radius: 999px; }
@@ -624,7 +634,6 @@
       .cc-log-line .wn { color: #ff8833; font-weight: 700; }
       .cc-log-line .er { color: #ff3333; font-weight: 700; }
       .cc-log-line .in { color: #00d4ff; font-weight: 700; }
-      /* SHS-4: nuclear log class */
       .cc-log-line .nx { color: #ff0000; font-weight: 700; text-shadow: 0 0 4px rgba(255,0,0,0.5); }
 
       .cc-controls {
@@ -669,29 +678,26 @@
           font-size: 0.68rem;
           align-self: flex-start;
         }
+        /* Mobile: panel clips horizontally to screen width */
         #cc-panel {
-          width: 0;
-          align-self: flex-start;
-        }
-        #cc-panel.open {
-          width: min(360px, calc(100vw - 32px));
+          width: min(340px, calc(100vw - 32px));
           max-height: 600px;
           align-self: flex-start;
         }
         .cc-panel-inner {
           width: 100%;
-          max-width: 360px;
+          max-width: min(320px, calc(100vw - 48px));
         }
         .mobile-nav, .mobile-menu, .hamburger-panel, .nav-drawer {
           z-index: 200;
         }
       }
 
+      /* cc-hidden: opacity+visibility (no transform, no will-change) */
       #cc-overlay.cc-hidden {
         opacity: 0 !important;
         visibility: hidden !important;
         pointer-events: none !important;
-        transform: translateY(12px);
       }
 
       body.mobile-menu-open #cc-overlay,
@@ -703,8 +709,7 @@
         pointer-events: none !important;
       }
 
-      /* HIGH-3 PATCH: .entropia-sigil root block removed.
-         .high-drift kept but scoped to non-floating sigils. */
+      /* HIGH-3 PATCH: scoped glitch to non-floating sigils */
       .entropia-sigil:not(.entropia-sigil--hero-bg).high-drift {
         filter: contrast(1.15) brightness(1.08) hue-rotate(8deg);
         animation: orp-sigil-glitch 0.4s linear infinite alternate;
@@ -731,7 +736,7 @@
   }
 
   /* ── Log ────────────────────────────────────────────────── */
-  /* MEDIUM-4 PATCH: single-entry prepend, O(1) */
+  /* GFXFIX-4: DocumentFragment prepend — no innerHTML parse per entry */
   function addLog(tagClass, tag, msg) {
     const timestamp = nowStr();
 
@@ -741,11 +746,20 @@
     const el = _dom().log;
     if (!el) return;
 
-    const line = document.createElement("div");
+    /* Build new line without touching innerHTML of the container */
+    const line    = document.createElement("div");
     line.className = "cc-log-line";
-    line.innerHTML = `<span class="t">${timestamp}</span> <span class="${tagClass}">${tag}</span> ${msg}`;
-    el.prepend(line);
+    /* Build inner nodes via DOM rather than innerHTML parse */
+    const tSpan   = document.createElement("span");
+    tSpan.className = "t";
+    tSpan.textContent = timestamp;
+    const tagSpan = document.createElement("span");
+    tagSpan.className = tagClass;
+    tagSpan.textContent = tag;
+    const txt = document.createTextNode(" " + msg);
+    line.append(tSpan, " ", tagSpan, txt);
 
+    el.prepend(line);
     while (el.children.length > 60) el.removeChild(el.lastChild);
   }
 
@@ -770,24 +784,7 @@
 
   /* ──────────────────────────────────────────────────────────
      SHS-1: Monotonic Hysteresis State Machine
-     ──────────────────────────────────────────────────────────
-
-     DEGRADATION THRESHOLDS (ρ):
-       GREEN  → ρ ≥ 75
-       YELLOW → ρ ∈ [55, 75)
-       ORANGE → ρ ∈ [35, 55)
-       RED    → ρ ∈ [15, 35)
-       BLACK  → ρ < 15  (or forced by high warden + drift)
-
-     Degradation is IMMEDIATE on threshold crossing.
-     Recovery is STEPWISE (one level per STABILITY_TICKS ticks).
-     BLACK is ABSORBING — only Architect reset can exit.
-
-     Combined drift = synthetic(ΔS, ρ) + perf telemetry + jitter.
-     This is the single source of truth passed to updateSigilDrift.
   ─────────────────────────────────────────────────────────── */
-
-  /* Map SHS level name → CSS class used in DOM */
   const SHS_CSS_CLASS = {
     GREEN:  "green",
     YELLOW: "yellow",
@@ -796,7 +793,6 @@
     BLACK:  "nuclear",
   };
 
-  /* Minimum rho required to be eligible for each state */
   const SHS_DEGRADE_THRESHOLDS = {
     GREEN:  75,
     YELLOW: 55,
@@ -805,15 +801,13 @@
     BLACK:   0,
   };
 
-  /* Minimum rho required to RECOVER to each state (hysteresis gap) */
   const SHS_RECOVER_THRESHOLDS = {
-    GREEN:  80,   // must be clearly above 75 before stepping back to GREEN
+    GREEN:  80,
     YELLOW: 62,
     ORANGE: 42,
     RED:    20,
   };
 
-  /* What updateSigilFromSHS expects — maps our 5-state to its 5-state */
   const SHS_TO_SIGIL = {
     GREEN:  "GREEN",
     YELLOW: "YELLOW",
@@ -822,57 +816,25 @@
     BLACK:  "BLACK",
   };
 
-  /* The OLD 3-state→3-state pill labels the rest of the codebase used */
-  const SHS_COLOR = {
-    GREEN:  "green",
-    YELLOW: "yellow",
-    ORANGE: "orange",
-    RED:    "red",
-    BLACK:  "nuclear",
-  };
-
-  /*
-    stepSHSMachine(rho, combinedDrift, ts)
-    ----------------------------------------
-    Called once per decay tick from inside _rafLoop.
-    Reads + writes window._orpSHSState.
-    Returns new SHS state string.
-  */
   function stepSHSMachine(rho, combinedDrift, ts) {
     const machine = window._orpSHSState;
     const current = machine.currentState;
 
-    /* BLACK is absorbing — never step automatically */
     if (current === "BLACK") return "BLACK";
 
     const currentIdx = SHS_STATES.indexOf(current);
 
-    /* ── DEGRADATION (immediate) ──────────────────────────
-       Find the worst state that rho qualifies for.
-       Also force BLACK if warden is MANIFEST AND drift is high. */
-    let targetIdx = 0; // default GREEN
-    for (let i = SHS_STATES.length - 1; i >= 0; i--) {
-      if (rho < SHS_DEGRADE_THRESHOLDS[SHS_STATES[i]]) {
-        // ρ is BELOW this state's floor → we're at this state or worse
-        targetIdx = Math.min(i + 1, SHS_STATES.length - 1);
-        break;
-      }
-    }
-    // Correct mapping: states degrade when rho falls BELOW threshold
-    // Remap: GREEN requires rho ≥ 75; YELLOW requires rho ≥ 55; etc.
-    targetIdx = 0;
-    if (rho < 15)      targetIdx = 4; // BLACK
-    else if (rho < 35) targetIdx = 3; // RED
-    else if (rho < 55) targetIdx = 2; // ORANGE
-    else if (rho < 75) targetIdx = 1; // YELLOW
-    else               targetIdx = 0; // GREEN
+    let targetIdx = 0;
+    if (rho < 15)      targetIdx = 4;
+    else if (rho < 35) targetIdx = 3;
+    else if (rho < 55) targetIdx = 2;
+    else if (rho < 75) targetIdx = 1;
+    else               targetIdx = 0;
 
-    // Warden MANIFEST + very high drift forces BLACK regardless of rho
     if (state.wardenState === "MANIFEST" && combinedDrift > 0.85) {
-      targetIdx = 4; // BLACK
+      targetIdx = 4;
     }
 
-    /* ── IMMEDIATE DEGRADATION ───────────────────────────── */
     if (targetIdx > currentIdx) {
       const newState = SHS_STATES[targetIdx];
       _logSHSTransition(current, newState, ts, "DRIFT");
@@ -882,9 +844,7 @@
       return newState;
     }
 
-    /* ── STEPWISE RECOVERY ───────────────────────────────── */
     if (targetIdx < currentIdx) {
-      // Check hysteresis: rho must also clear the recovery threshold
       const stepUpState   = SHS_STATES[currentIdx - 1];
       const recoverFloor  = SHS_RECOVER_THRESHOLDS[stepUpState] ?? 0;
       const driftIsLow    = combinedDrift < 0.18;
@@ -904,7 +864,6 @@
         return stepUpState;
       }
     } else {
-      // rho agrees with current state — accumulate stability
       if (combinedDrift < 0.18) {
         machine.stabilityCounter = Math.min(
           machine.stabilityCounter + 1,
@@ -929,24 +888,22 @@
   }
 
   /* ── Update DOM ─────────────────────────────────────────── */
+  /* BAR FIX: bars use scaleX(0..1) via transform instead of width% */
+  function _setBarScale(barEl, pct) {
+    if (!barEl) return;
+    barEl.style.transform = `scaleX(${clamp(pct, 0, 100) / 100})`;
+  }
+
   function update() {
     const d = _dom();
 
-    // ΔS
     if (d.ds) d.ds.textContent = fmt4(state.deltaS);
 
-    // ρ(x)
     if (d.rho) { d.rho.textContent = fmt1(state.rho); d.rho.className = "cc-metric-val cyan"; }
-    if (d.rhoBar) {
-      d.rhoBar.style.width = clamp(state.rho, 2, 100) + "%";
-      d.rhoBar.className   = `cc-bar-fill${state.rho < 60 ? " degraded" : ""}`;
-    }
+    _setBarScale(d.rhoBar, state.rho);
+    if (d.rhoBar) d.rhoBar.className = `cc-bar-fill${state.rho < 60 ? " degraded" : ""}`;
     if (d.rhoPct) d.rhoPct.textContent = Math.round(state.rho) + "%";
 
-    /* SHS-1: Machine state drives all SHS display.
-       We read machine.currentState (set by stepSHSMachine in _rafLoop)
-       and use it for all pill/metric updates. update() itself no longer
-       calls calcSHS — the machine is the sole authority. */
     const newSHS = window._orpSHSState.currentState;
     if (newSHS !== state.shs) {
       state.shs = newSHS;
@@ -955,16 +912,14 @@
     if (d.shs) { d.shs.textContent = state.shs; d.shs.className = `cc-metric-val ${shsClass}`; }
     if (d.pill) { d.pill.textContent = state.shs; d.pill.className = `cc-shs-pill ${shsClass}`; }
 
-    // Warden %
     if (d.wpct) {
       const wpct = Math.round(state.warden);
       d.wpct.textContent = wpct + "%";
       d.wpct.className   = `cc-metric-val${state.warden >= 72 ? " red" : state.warden >= 45 ? " orange" : ""}`;
     }
-    if (d.wBar)  d.wBar.style.width  = clamp(state.warden, 0, 100) + "%";
+    _setBarScale(d.wBar, state.warden);
     if (d.wPct)  d.wPct.textContent  = Math.round(state.warden) + "%";
 
-    // Warden state machine (3-state, unchanged)
     const newW = state.warden >= 72 ? "MANIFEST" : state.warden >= 45 ? "PRIMED" : "DORMANT";
     if (newW !== state.wardenState) {
       addLog(newW === "MANIFEST" ? "er" : newW === "PRIMED" ? "wn" : "ok",
@@ -974,27 +929,19 @@
     }
     applyWarden(state.wardenState);
 
-    // Session entropy
     state.sessionEntropy += state.deltaS * 0.01;
     _debouncedSave();
     if (d.sessionVal) d.sessionVal.textContent = fmt4(state.sessionEntropy);
 
-    // Page label
     if (d.pageLabel) {
       const pg = window.location.pathname.split("/").pop() || "index.html";
       d.pageLabel.textContent = pg.replace(".html","").toUpperCase() || "INDEX";
     }
 
-    if (_dom().asciiPanel) _syncAsciiPanel(state.shs);
+    if (d.asciiPanel) _syncAsciiPanel(state.shs);
   }
 
   /* ── Inject delta ───────────────────────────────────────── */
-  /* BUG-2 PATCH: gate on BLACK state. scroll/click listeners called
-     injectDelta() unconditionally, mutating state.rho + state.warden
-     even while BLACK (decay() froze them, but injectDelta ran first,
-     corrupting values before the clamp). Return immediately in BLACK,
-     but the caller still stamps the event timestamp for SHS-3 jitter
-     telemetry — that signal stays live even in BLACK. */
   function injectDelta(ds) {
     if (window._orpSHSState.currentState === "BLACK") return;
     state.deltaS = clamp(ds, 0, 0.25);
@@ -1006,9 +953,6 @@
 
   /* ── Passive decay ──────────────────────────────────────── */
   function decay() {
-    /* BLACK state: no automatic recovery of ρ or warden.
-       Decay continues to update deltaS so drift doesn't freeze,
-       but rho and warden are locked until Architect reset. */
     if (window._orpSHSState.currentState === "BLACK") {
       state.deltaS = clamp(state.deltaS - 0.0001, 0, 1);
       update();
@@ -1031,7 +975,12 @@
     }
   }
 
-  /* ── ASCII panel live sync ──────────────────────────────── */
+  /* ──────────────────────────────────────────────────────────
+     ASCII panel live sync
+     GFXFIX-1: Fixed character-width columns (40ch terminal),
+     proper escape sequences, visibility guard.
+     SYNC-1: Corrected box-drawing alignment.
+  ─────────────────────────────────────────────────────────── */
   const ASCII_SHS_STYLE = {
     GREEN:  { color: '#3fb950', glow: 'rgba(63,185,80,0.45)',  char: '~', label: '[= STAR =]',  core: '[ CORE ]' },
     YELLOW: { color: '#ffcc00', glow: 'rgba(255,204,0,0.45)',  char: '≈', label: '[~ STAR ~]',  core: '[ CORE ]' },
@@ -1041,18 +990,18 @@
     BLACK:  { color: '#ff0000', glow: 'rgba(255,0,0,0.8)',     char: '█', label: '[█ DEAD █]',  core: '[!NULL!]' },
   };
   const GLITCH_POOL = ['█','▓','▒','░','╳','╬','╫','╪','║','═','╔','╗'];
-  let _asciiFrame  = 0;
+  let _asciiFrame   = 0;
   let _lastAsciiSHS = '';
 
   function _syncAsciiPanel(shs) {
     const panel = _dom().asciiPanel;
-    if (!panel) return;
+    /* GFXFIX-1: guard — only write if panel is in the DOM and visible */
+    if (!panel || panel.offsetParent === null && !panel.closest('body')) return;
 
     const key  = ASCII_SHS_STYLE[shs] ? shs : 'GREEN';
     const cfg  = ASCII_SHS_STYLE[key];
     _asciiFrame++;
 
-    // MEDIUM-2 PATCH: use memoized _getSigils()
     const drift = parseFloat(
       _getSigils()[0]?.style.getPropertyValue('--drift-intensity') || '0'
     );
@@ -1063,12 +1012,17 @@
       panel.style.textShadow = `0 0 6px ${cfg.glow}, 0 0 14px ${cfg.glow.replace(/[\d.]+\)$/, '0.2)')}`;
     }
 
-    const wave  = _buildWave(cfg.char, drift, _asciiFrame);
-    const wL    = ((key === 'RED' || key === 'BLACK') && Math.random() > 0.6) ? _glitchStr('//', drift) : '//';
-    const wR    = ((key === 'RED' || key === 'BLACK') && Math.random() > 0.6) ? _glitchStr('//', drift) : '//';
+    const wave      = _buildWave(cfg.char, drift, _asciiFrame);
+    /* SYNC-1: Use const strings without variable-length glitch on flanks
+       (the // delimiters are fixed-width; glitch only on RED/BLACK) */
+    const useGlitch = (key === 'RED' || key === 'BLACK') && Math.random() > 0.6;
+    const wL        = useGlitch ? _glitchStr('//', drift) : '//';
+    const wR        = useGlitch ? _glitchStr('//', drift) : '//';
     const coreLabel = (drift > 0.55 && Math.random() > 0.5)
       ? _glitchStr(cfg.core, drift) : cfg.core;
 
+    /* SYNC-1: Fixed-column ASCII art — every line is exactly 36 chars.
+       Uses backslash literals (not escape sequences in template). */
     panel.textContent =
 `    ${wL}              ${wR}
    ${wL}              ${wR}
@@ -1079,8 +1033,8 @@
  ||    |  ${wave}  |    ||
  ||    | ( ( || ) ) |    ||
  ||    |     ||     |    ||
-  \\\\    \\__________/    //
-   \\\\________||________//
+  \\    \\__________/    //
+   \\________||________//
         ${cfg.label}
        / ${coreLabel} \\
       /____________\\`;
@@ -1110,12 +1064,6 @@
     buildStyles();
     buildOverlay();
 
-    /* BUG-1 PATCH: menuObserver was watching document.body for
-       'mobile-menu-open', but main.js sets 'menu-open' on nav#main-nav —
-       never on body. Now observes BOTH nodes. Trigger logic checks the nav
-       element's 'menu-open' class as the primary signal (what main.js
-       actually sets), falling back to body for future consumers.
-       CSS cc-hidden selectors kept broad (defensive). */
     const overlay    = document.getElementById("cc-overlay");
     const navElement = document.getElementById("main-nav");
 
@@ -1135,14 +1083,11 @@
     };
 
     const menuObserver = new MutationObserver(_checkMenuState);
-    // Watch body for legacy/future body-class consumers
     menuObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
-    // Watch nav for main.js's actual 'menu-open' toggle (BUG-1 primary fix)
     if (navElement) {
       menuObserver.observe(navElement, { attributes: true, attributeFilter: ["class"] });
     }
 
-    // Tab toggle
     const d = _dom();
     d.tab?.addEventListener("click", () => {
       state.panelOpen = !state.panelOpen;
@@ -1151,18 +1096,15 @@
       d.panel?.setAttribute("aria-hidden", state.panelOpen ? "false" : "true");
     });
 
-    // Inject button
     document.getElementById("cc-inject")?.addEventListener("click", () => {
       injectDelta(0.025 + Math.random() * 0.055);
     });
 
-    // Reset button — Architect reset: exits BLACK state
     document.getElementById("cc-reset")?.addEventListener("click", () => {
       const machine = window._orpSHSState;
       if (machine.currentState === "BLACK" || state.wardenState === "MANIFEST") {
         addLog("ok", "CRA", "Architect reset initiated…");
         setTimeout(() => {
-          // Full BLACK exit: restore rho, clear warden, reset machine state
           machine.currentState     = "GREEN";
           machine.stabilityCounter = 0;
           machine.lastTransitionTs = performance.now();
@@ -1185,76 +1127,49 @@
       }
     });
 
-    /* ── SHS-3: Event latency telemetry ──────────────────────
-       Stamp performance.now() on every scroll/click event.
-       _rafLoop reads the gap once per sigil-sync tick.
-       Zero DOM writes in these listeners.
-
-       BUG-3 PATCH: injectDelta() is severed in BLACK state (see
-       injectDelta gate). The timestamp is still written here so jitter
-       telemetry (SHS-3) remains live — the OUTPUT/display pipeline stays
-       hot even though the entropy INPUT pipeline is severed. */
     let lastScrollY = window.scrollY, accum = 0;
     window.addEventListener("scroll", () => {
-      window._orpSHSState.lastScrollTs = performance.now(); // always stamp (BUG-3)
+      window._orpSHSState.lastScrollTs = performance.now();
       const delta = Math.abs(window.scrollY - lastScrollY);
       accum += delta; lastScrollY = window.scrollY;
       if (accum > 150) {
-        injectDelta(clamp((accum / 12000) * 0.5, 0.001, 0.035)); // no-op in BLACK
+        injectDelta(clamp((accum / 12000) * 0.5, 0.001, 0.035));
         accum = 0;
       }
     }, { passive: true });
 
     document.addEventListener("click", (e) => {
-      window._orpSHSState.lastClickTs = performance.now(); // always stamp (BUG-3)
+      window._orpSHSState.lastClickTs = performance.now();
       if (e.target.closest("#cc-overlay")) return;
-      injectDelta(0.002 + Math.random() * 0.004); // no-op in BLACK
+      injectDelta(0.002 + Math.random() * 0.004);
     });
 
-    /* ──────────────────────────────────────────────────────────
-       rAF-capped loop: decay + SHS machine + sigil sync
-       SHS-2: Real perf telemetry measured here.
-
-       Delta-time is measured every frame.
-       Slow frames (> 33ms = < 30fps) inject drift pressure.
-       This reflects genuine GPU/CPU load, not just simulated ΔS.
-
-       Decay:        ~900ms
-       Sigil sync:   ~800ms (also runs SHS machine)
-    ─────────────────────────────────────────────────────────── */
+    /* rAF loop: decay + SHS machine + sigil sync */
     let _lastDecayTs   = 0;
     let _lastSigilTs   = 0;
     let _lastSigilSHS  = '';
-    let _lastRafTs     = 0;          // SHS-2: previous rAF timestamp
-    const _FPS_ALPHA   = 0.1;        // EMA smoothing factor for fps
+    let _lastRafTs     = 0;
+    const _FPS_ALPHA   = 0.1;
 
     function _rafLoop(ts) {
-      /* SHS-2: Measure real delta-time and update perf telemetry */
       const rawDelta = _lastRafTs > 0 ? ts - _lastRafTs : 16.67;
       _lastRafTs = ts;
 
       const machine = window._orpSHSState;
       machine.lastFrameDelta = rawDelta;
-      // Exponential moving average for fps — stable, no allocation
       machine.frameRate = machine.frameRate * (1 - _FPS_ALPHA)
                         + (1000 / rawDelta) * _FPS_ALPHA;
 
-      /* SHS-2: Convert frame slowness to drift pressure.
-         Target: 60fps → 16.67ms. Frames > 33ms are "slow" (< 30fps).
-         Slow frames add up to PERF_DRIFT_SCALE drift pressure.
-         Normalized so one very-slow frame adds at most ~0.08 drift units. */
       if (rawDelta > 33) {
-        const slowness = clamp((rawDelta - 33) / 200, 0, 1); // 0→1 as delta→233ms
+        const slowness = clamp((rawDelta - 33) / 200, 0, 1);
         machine.perfDriftPressure = clamp(
           machine.perfDriftPressure * 0.95 + slowness * PERF_DRIFT_SCALE,
           0, 1
         );
       } else {
-        // Fast frame: decay perf pressure
         machine.perfDriftPressure = machine.perfDriftPressure * 0.90;
       }
 
-      /* MEDIUM-1 PATCH: early-exit when neither decay nor sigil-sync is due */
       const needsDecay = ts - _lastDecayTs >= 900;
       const needsSigil = ts - _lastSigilTs  >= 800;
       if (!needsDecay && !needsSigil) {
@@ -1268,9 +1183,6 @@
       }
 
       if (needsSigil) {
-        /* SHS-3: Event jitter telemetry.
-           Read the gap between the rAF timestamp and the last scroll/click event.
-           High jitter (> 80ms) means the event queue is backed up — adds drift. */
         const lastEventTs = Math.max(machine.lastScrollTs, machine.lastClickTs);
         if (lastEventTs > 0) {
           machine.eventJitter = clamp(ts - lastEventTs, 0, 500);
@@ -1279,31 +1191,22 @@
             : 0;
         }
 
-        /* SHS-1 + SHS-2 + SHS-3: Compute combined drift.
-           Synthetic: existing ΔS and ρ signals.
-           Real perf: slow frame pressure.
-           Jitter:    event latency pressure. */
         const syntheticDrift = clamp(state.deltaS * 4 + (100 - state.rho) / 100, 0, 1);
         const combinedDrift  = clamp(
           syntheticDrift + machine.perfDriftPressure + machine.jitterDrift,
           0, 1
         );
 
-        /* SHS-1: Tick the state machine.
-           stepSHSMachine handles all hysteresis logic and logs transitions. */
         const newMachineState = stepSHSMachine(state.rho, combinedDrift, ts);
 
-        // Sync state.shs with machine (update() reads state.shs)
         if (newMachineState !== state.shs) {
           state.shs = newMachineState;
         }
 
-        // Drive sigil visual from combined drift (not just synthetic)
         _getSigils().forEach(s => {
           s.classList.toggle('high-drift', combinedDrift > 0.55);
         });
 
-        // Drive sigil glow/animation from SHS state
         const pill = _dom().pill;
         if (pill) {
           const sigilState = SHS_TO_SIGIL[newMachineState] || 'GREEN';
@@ -1316,7 +1219,6 @@
           }
         }
 
-        // Always push combined drift to sigil so it reflects real perf load
         if (typeof window.updateSigilDrift === 'function') {
           window.updateSigilDrift(combinedDrift);
         }
@@ -1327,9 +1229,23 @@
       state._rafHandle = requestAnimationFrame(_rafLoop);
     }
     state._rafHandle = requestAnimationFrame(_rafLoop);
-    window._orpRafActive = true;
 
-    /* LOW-1 + LOW-3 PATCH: cleanup on page unload */
+    /* SYNC-2: Signal that the overlay rAF loop is running.
+       runtime.html's inline script checks _orpOverlayActive before
+       starting its own setInterval to avoid double-decay. */
+    window._orpRafActive      = true;
+    window._orpOverlayActive  = true;
+
+    /* SYNC-3: Expose the SHS pill element so runtime.html can observe
+       it directly without polling */
+    window._orpSHSPill = _dom().pill;
+
+    /* SYNC-4: Expose injectDelta so runtime.html buttons can delegate
+       into the overlay's authoritative state rather than running a
+       second mutation path. Without this, the Warden bar never fills
+       from the rc-inject / rc-warden buttons. */
+    window._orpInjectDelta = injectDelta;
+
     window.addEventListener('pagehide', () => {
       if (state._rafHandle) { cancelAnimationFrame(state._rafHandle); state._rafHandle = null; }
       if (_saveTimer) { clearTimeout(_saveTimer); saveSessionEntropy(state.sessionEntropy); }

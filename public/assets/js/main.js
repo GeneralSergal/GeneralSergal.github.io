@@ -235,7 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }, { threshold: 0.05, rootMargin: "0px 0px -80px 0px" });
 
   document.querySelectorAll(
-    "section, header, .pipeline-card, .doc-card, .principle, .quick-access-card, .release-card"
+    "section, header, .pipeline-card, .doc-card, .principle, .quick-access-card, .release-card, .cfg-card, .cfg-danger"
   ).forEach(el => {
     el.classList.add("reveal");
     observer.observe(el);

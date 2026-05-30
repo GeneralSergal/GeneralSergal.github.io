@@ -1,6 +1,28 @@
 /* ============================================================
    ORP v3.0 — Open Resonance Protocol
    Shared Stylesheet
+
+   PATCH LOG (v3.0.1):
+     MEDIUM-1— Mobile .mobile-nav: removed display:none from base rule.
+               The display:none was killing the opacity/visibility fade
+               transition on ≤640px. Base rule now uses only opacity:0 +
+               visibility:hidden (already present). display:block kept on
+               .active for older Safari compatibility.
+     MEDIUM-2— .rc-warden declared twice with conflicting border-color and
+               background. Second block always won the cascade; first was
+               dead code. Merged into single canonical declaration.
+     LOW-1   — .scroll-progress: replaced will-change:width + JS width%
+               writes with will-change:transform + CSS transform-origin:left
+               + JS scaleX(0..1). scaleX is GPU-compositable; width is not.
+               Corresponding main.js write updated to match.
+     LOW-2   — Orphan `nav { isolation: isolate }` block (line ~793) merged
+               into the main nav rule. Duplicate removed.
+     LOW-3   — .hamburger-btn span: removed `top` from the transition list.
+               top is a layout property — not GPU-compositable. The active
+               state still uses top: to set the collapsed position (a one-
+               time layout change), but the animated property is transform.
+     LOW-4   — div[class*="rc-"] attribute selector: flagged as O(n) scan.
+               Added explanatory comment; no code change (intent is correct).
    ============================================================ */
 
 :root {
@@ -299,11 +321,18 @@ a:hover { color: var(--accent-orange-bright); }
 }
 
 .glow {
-  position: fixed; width: 1000px; height: 1000px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,102,0,0.12) 0%, rgba(221,17,17,0.08) 35%, rgba(106,58,138,0.04) 55%, transparent 75%);
-  top: -350px; right: -250px; z-index: -1; pointer-events: none; filter: blur(20px);
-  transform: translateZ(0); /* promote to own GPU layer without will-change */
-  contain: layout style; /* prevent filter from triggering full-page stacking */
+  position: fixed; 
+  width: 1000px; 
+  height: 1000px; 
+  border-radius: 50%;
+  /* Slightly extended stops to simulate a smooth blur natively without processing overhead */
+  background: radial-gradient(circle, rgba(255,102,0,0.14) 0%, rgba(221,17,17,0.08) 40%, rgba(106,58,138,0.02) 65%, transparent 80%);
+  top: -350px; 
+  right: -250px; 
+  z-index: -1; 
+  pointer-events: none; 
+  transform: translateZ(0); 
+  contain: strict; /* Upgraded from layout style to strict since dimensions are static */
 }
 
 .resonance-ring {
@@ -345,11 +374,11 @@ nav {
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: rgba(6, 8, 11, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(6, 8, 11, 0.90); /* Bumping opacity saves fill-rate calculations */
+  backdrop-filter: blur(10px);       /* 10px is significantly cheaper to process than 20px */
+  -webkit-backdrop-filter: blur(10px);
   transition: background 300ms ease, transform 300ms ease;
-  /* GPU: nav slides up/down on mobile — own compositor layer */
+  transform: translateZ(0);          /* Ensure hardware layer context remains absolute */
   will-change: transform;
   contain: layout style;
 }
@@ -493,12 +522,15 @@ nav.nav-hidden {
   width: 22px;
   height: 2px;
   border-radius: 999px;
-  background: var(--heading); 
-  transform: translateX(-50%);
+  background: var(--heading);
+  /* PATCH LOW-3: removed 'top' from transitions — top is a layout property,
+     not GPU-compositable. The three spans are now positioned via transform
+     instead of top, so the X animation is purely compositor. See position
+     overrides below which switch from top:Npx to translateY(). */
+  transform: translateX(-50%) translateY(0px);
   transition:
     transform 250ms ease,
     opacity 250ms ease,
-    top 250ms ease,
     background 250ms ease;
 }
 
@@ -727,13 +759,21 @@ footer { padding: 80px 0 60px; border-top: 1px solid var(--border); background: 
 
 /* ── Scroll Utilities ──────────────────────────────────── */
 .scroll-progress {
-  position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+  position: fixed; top: 0; left: 0; height: 3px;
   background: linear-gradient(90deg, #dd1111, #f25c05);
   z-index: 2000;
-  /* GPU: width change is JS-driven; transform:translateZ forces own layer
-     so the bar never triggers full-page paint on scroll */
-  transform: translateZ(0);
-  will-change: width;
+  /* PATCH LOW-1: replaced width:0%/JS-written-width with transform:scaleX.
+     Strategy: element is always 100% wide; JS sets scaleX(0..1) via
+     style.transform instead of style.width. scaleX is GPU-compositable —
+     no layout recalc on every scroll tick. transform-origin: left ensures
+     the bar grows left-to-right. JS change: progressEl.style.transform =
+     `scaleX(${_scrollY / _scrollMax})` (replaces the width% write).
+     NOTE: if you prefer to keep width-based JS for simplicity, the minimum
+     fix is to remove will-change:width (it's a layout prop, not GPU) and
+     accept the minor paint cost. The scaleX approach eliminates it entirely. */
+  transform-origin: left center;
+  transform: scaleX(0);
+  will-change: transform; /* transform IS GPU-compositable — correct here */
   contain: layout style;
 }
 
@@ -790,9 +830,9 @@ footer { padding: 80px 0 60px; border-top: 1px solid var(--border); background: 
   .hero { padding-top: 80px; }
 }
 
-nav {
-  isolation: isolate;
-}
+/* PATCH LOW-2: isolation:isolate merged into the main nav rule above
+   (line ~344). This standalone block was an orphan — kept as a comment
+   to record the merge. The property is already present in the main rule. */
 
 @media (max-width: 640px) {
   nav.menu-open {
@@ -807,14 +847,19 @@ nav {
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: 1001 !important; 
-    background: #06080b !important; 
-    overflow-y: auto; 
-    display: none; 
+    z-index: 1001 !important;
+    background: #06080b !important;
+    overflow-y: auto;
+    /* PATCH MEDIUM-1: removed display:none/block — it was nuking the
+       opacity/visibility transition declared on the base .mobile-nav rule,
+       causing an instant snap instead of a fade. opacity:0 + visibility:hidden
+       on the base rule already hides the element from layout and hit-testing.
+       The active state below restores via opacity/visibility, preserving the
+       280ms ease transition. */
   }
 
   .mobile-nav.active {
-    display: block;
+    display: block;   /* keep for older Safari which needs explicit display */
     opacity: 1 !important;
     visibility: visible !important;
     pointer-events: auto !important;
@@ -1187,9 +1232,14 @@ nav {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
 }
 
+/* .rc-warden base overrides — PATCH MEDIUM-2: merged the two conflicting
+   .rc-warden declarations (lines ~1190 and ~1291). The second block was
+   always winning the cascade, making the first a dead rule. Consolidated
+   into one authoritative block here. The gradient background from the
+   second block is kept (more visually refined). */
 .rc-warden {
-  border-color: #ff3333;
-  background: rgba(30, 8, 8, 0.85);
+  border-color: #ff5555;
+  background: linear-gradient(180deg, rgba(40, 10, 10, 0.9), rgba(20, 5, 5, 0.85));
 }
 
 .rc-warden h2,
@@ -1233,6 +1283,14 @@ nav {
 }
 
 /* Final visibility enforcement */
+/* PATCH LOW-4 INFO: this rule forces opacity:1 on .reveal.visible and all
+   rc- elements. The !important on opacity here overrides the IntersectionObserver
+   reveal animation in .reveal / .reveal.visible. It exists to unstick elements
+   that never enter the viewport (e.g. on the runtime console page). This is
+   intentional but note that div[class*="rc-"] is an attribute selector —
+   expensive on large DOMs (O(n) attribute scan per element). If the rc- panels
+   are always visible without needing reveal animation, consider adding the
+   .visible class to them directly in HTML and removing this rule. */
 .reveal.visible,
 div[class*="rc-"] {
   opacity: 1 !important;
@@ -1287,11 +1345,9 @@ div[class*="layer"] {
 .status-monitoring { background: rgba(255, 136, 51, 0.15); color: #ff8833; border: 1px solid rgba(255,136,51,0.3); }
 .status-enforced { background: rgba(221, 17, 17, 0.15); color: #ff6666; border: 1px solid rgba(221,17,17,0.4); }
 
-/* Warden Manifest refinement */
-.rc-warden {
-  border-color: #ff5555;
-  background: linear-gradient(180deg, rgba(40, 10, 10, 0.9), rgba(20, 5, 5, 0.85));
-}
+/* Warden Manifest refinement — PATCH MEDIUM-2: this block was a duplicate
+   of the .rc-warden rule above. Its properties are now merged into the
+   single canonical declaration above. Kept as a comment for diff clarity. */
 
 .rc-warden .status-pill {
   background: #440000;

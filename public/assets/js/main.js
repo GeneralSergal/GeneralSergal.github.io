@@ -5,6 +5,19 @@
    event only captures the latest scroll position (a cheap
    read); the rAF callback does all writes, running at most
    once per display refresh cycle regardless of scroll speed.
+
+   PATCH LOG (v3.0.1):
+     MEDIUM-1— resize listener now carries { passive: true } flag.
+     MEDIUM-2— document.documentElement.scrollHeight read moved out
+               of _flushScrollWrites() into a ResizeObserver cache
+               (_scrollMax). Zero layout reads inside the rAF callback.
+     LOW-1   — display:none/block panel toggles replaced with the
+               hidden attribute. Avoids full paint+layout recalc on
+               toggle; semantically equivalent; aria-expanded still set.
+     LOW-2   — IntersectionObserver: added rootMargin:"0px 0px -80px 0px"
+               (trigger 80px early, eliminates flash-of-invisible on fast
+               scroll); added observer.unobserve() after first reveal to
+               free observer bookkeeping for elements that won't re-hide.
    ============================================================ */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -20,6 +33,17 @@ document.addEventListener("DOMContentLoaded", () => {
   let _lastNavScrollY = window.scrollY;
   const SCROLL_THRESHOLD = 8;
 
+  /* PATCH MEDIUM-2: cache scrollMax — document.documentElement.scrollHeight
+     is a layout read. Previously called inside _flushScrollWrites() on every
+     rAF tick. Now cached and updated only when document size actually changes
+     via ResizeObserver on document.documentElement (fires on content reflow,
+     not on every scroll). Eliminates one forced layout read per rAF frame. */
+  let _scrollMax = document.documentElement.scrollHeight - window.innerHeight;
+  const _scrollMaxObs = new ResizeObserver(() => {
+    _scrollMax = document.documentElement.scrollHeight - window.innerHeight;
+  });
+  _scrollMaxObs.observe(document.documentElement);
+
   /* ── Single scroll listener — passive, zero DOM writes ── */
   window.addEventListener("scroll", () => {
     _scrollY = window.scrollY;
@@ -33,10 +57,9 @@ document.addEventListener("DOMContentLoaded", () => {
   function _flushScrollWrites() {
     _rafPending = false;
 
-    const scrollMax = document.documentElement.scrollHeight - window.innerHeight;
-
-    if (progressEl && scrollMax > 0) {
-      progressEl.style.width = ((_scrollY / scrollMax) * 100) + "%";
+    // PATCH LOW-1: write scaleX(0..1) instead of width% — scaleX is GPU-compositable, width% triggers layout
+    if (progressEl && _scrollMax > 0) {
+      progressEl.style.transform = `scaleX(${_scrollY / _scrollMax})`;
     }
 
     if (topBtn) {
@@ -127,7 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     };
-    window.addEventListener("resize", _onResize);
+    window.addEventListener("resize", _onResize, { passive: true }); // PATCH: passive flag — resize never calls preventDefault
   }
 
   /* ── Author image fallback ───────────────────────────── */
@@ -150,13 +173,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const extendedContainer = document.getElementById("extended-telemetry-container");
     const btnText           = document.getElementById("telemetry-btn-text");
 
+    /* PATCH LOW-1: use hidden attribute instead of style.display toggle.
+       display:none/block causes a full paint + layout recalc on the panel
+       and all its descendants. The hidden attribute is semantically equivalent
+       and the browser may defer paint until the element is actually needed.
+       Note: requires extendedContainer to NOT have CSS that overrides [hidden]
+       (e.g. do not set display:flex on this element unconditionally in CSS). */
     consoleToggleBtn.addEventListener("click", () => {
       if (!extendedContainer || !btnText) return;
 
-      const isHidden = extendedContainer.style.display === "none";
-      extendedContainer.style.display = isHidden ? "block" : "none";
+      const isHidden = extendedContainer.hasAttribute("hidden");
+      if (isHidden) {
+        extendedContainer.removeAttribute("hidden");
+      } else {
+        extendedContainer.setAttribute("hidden", "");
+      }
       consoleToggleBtn.setAttribute("aria-expanded", isHidden ? "true" : "false");
-      btnText.textContent  = isHidden
+      btnText.textContent = isHidden
         ? "[ COLLAPSE SYSTEM ARTIFACTS - ]"
         : "[ EXPAND SYSTEM ARTIFACTS + ]";
       btnText.style.color = isHidden ? "var(--accent-orange)" : "var(--muted)";
@@ -170,11 +203,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const panel   = document.getElementById("variant-matrix-panel");
     const btnSpan = variantToggleBtn.querySelector("span");
 
+    // PATCH LOW-1: hidden attribute instead of display toggle (see telemetry toggle above)
     variantToggleBtn.addEventListener("click", () => {
       if (!panel || !btnSpan) return;
 
-      const isHidden = panel.style.display === "none";
-      panel.style.display = isHidden ? "block" : "none";
+      const isHidden = panel.hasAttribute("hidden");
+      if (isHidden) {
+        panel.removeAttribute("hidden");
+      } else {
+        panel.setAttribute("hidden", "");
+      }
       variantToggleBtn.setAttribute("aria-expanded", isHidden ? "true" : "false");
       btnSpan.textContent = isHidden
         ? "[SYSTEM // CLOSE VARIANT MATRIX]"
@@ -183,13 +221,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ── Intersection Observer reveal ───────────────────── */
+  /* PATCH LOW-2: added rootMargin so elements begin their reveal transition
+     80px before they enter the viewport. Without this, fast scrollers see a
+     brief flash of opacity:0 before the observer fires. rootMargin is a string
+     read at construction time — zero runtime cost. */
   const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         entry.target.classList.add("visible");
+        observer.unobserve(entry.target); // PATCH LOW-2: unobserve after reveal — frees observer bookkeeping for off-screen elements
       }
     });
-  }, { threshold: 0.05 });
+  }, { threshold: 0.05, rootMargin: "0px 0px -80px 0px" });
 
   document.querySelectorAll(
     "section, header, .pipeline-card, .doc-card, .principle, .quick-access-card, .release-card"

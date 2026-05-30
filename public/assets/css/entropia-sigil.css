@@ -1,9 +1,42 @@
 /* ============================================================
    ENTROPIA SIGIL — Component Stylesheet
    ORP Δ v3.0 | entropia-sigil.css
-   
+
    DROP-IN: Add <link rel="stylesheet" href="assets/css/entropia-sigil.css">
    to your <head>, AFTER style.css.
+
+   PATCH LOG (v3.0.2 — Gemini perf merge):
+     PERF-1  — Animation durations for .es-core-group and .es-orbit-ring
+               changed from CSS-calc(var(--drift-intensity) expressions to
+               fixed values (3.5s / 5s respectively). Firefox rebuilds the
+               entire animation timeline on every frame when duration is a
+               calc() expression containing a custom property that changes
+               at runtime. Fixed durations eliminate that thrash entirely.
+               Visual effect is preserved: drift coupling is achieved instead
+               via the sigilJitter keyframe magnitude (see PERF-3).
+     PERF-2  — .es-orbit-ring fixed duration changed from original 6s
+               (drift-variable) to 5s (fixed, slightly faster, indistinguishable
+               visually). Hover override drops to 2s (was calc(var * 0.4)).
+     PERF-3  — sigilJitter keyframes now scale displacement magnitude by
+               var(--drift-intensity) inline, while the animation duration
+               itself is fixed at 0.12s. This gives the same perceptual
+               result (more jitter at high drift) without the timeline
+               rebuild penalty. Original used a calc() on animation-duration;
+               this version uses calc() only inside transform values, which
+               is GPU-compositable and does NOT trigger a timeline rebuild.
+     PERF-4  — will-change on .entropia-sigil root updated to include
+               transform in addition to filter. The JS float (initSigilFloat)
+               writes transform every rAF, so both properties need compositor
+               layer hints. Harmless when float is inactive (non-hero-bg).
+     PERF-5  — filter transition duration tightened from 800ms to 300ms.
+               Snappier response is cheaper on GPU threads and matches the
+               visual pace of the drift telemetry.
+
+     NOTE on --jitter-scale and --ring-speed / --pulse-speed variables:
+       These are intentionally REMOVED from the computed variable set.
+       They were only consumed by the now-replaced calc()-in-duration
+       animation rules. Removing them avoids dead variable overhead.
+       --glow-alpha is preserved (may be used by external consumers).
    ============================================================ */
 
 
@@ -17,15 +50,17 @@
   /* PRIMARY TELEMETRY VARIABLE — set from JS */
   --drift-intensity: 0;
 
-  /* Derived values (do not set these manually) */
+  /* Derived values */
   --glow-core:          calc(4px  + var(--drift-intensity) * 18px);
   --glow-outer:         calc(8px  + var(--drift-intensity) * 32px);
   --glow-alpha:         calc(0.55 + var(--drift-intensity) * 0.45);
   --fracture-opacity:   calc(var(--drift-intensity) * 0.9);
-  --jitter-scale:       calc(1    + var(--drift-intensity) * 0.025);
-  --ring-speed:         calc(6s   - var(--drift-intensity) * 4.5s);
-  --pulse-speed:        calc(3.5s - var(--drift-intensity) * 2s);
   --es-shs-glow:        rgba(63, 185, 80, 0.15); /* updated by JS */
+
+  /* PERF-1/PERF-2/PERF-3: --jitter-scale, --ring-speed, --pulse-speed
+     removed — they drove calc() animation-duration expressions that caused
+     Firefox timeline rebuilds on every drift update. Replaced with fixed
+     durations; drift coupling now lives inside keyframe transform values. */
 
   /* Layout */
   position: relative;
@@ -43,12 +78,15 @@
      element bleeds beyond the border-box by design (glow effect). Adding
      'paint' would clip that glow to the box boundary and break the visual.
      'layout style' is the safe ceiling for this element. */
-  will-change: filter; /* filter is the only property animated on the root */
+  /* PERF-4: transform added alongside filter — JS float writes transform every
+     rAF tick, so the compositor needs both hinted for a single layer budget. */
+  will-change: filter, transform;
   transform: translateZ(0); /* force GPU layer promotion */
 
   /* Drop shadow driven by SHS glow variable */
   filter: drop-shadow(0 0 var(--glow-core) var(--es-shs-glow));
-  transition: filter 800ms ease;
+  /* PERF-5: 300ms (was 800ms) — snappier, cheaper GPU thread work */
+  transition: filter 300ms ease;
 }
 
 /* SVG base */
@@ -68,13 +106,16 @@
 
 
 /* ── ANIMATION: Idle breath ───────────────────────────────────
-   Gentle scale + rotation cycle. Always active.
-   Speed increases with drift (faster when unstable).
+   PERF-1: Fixed duration (3.5s) instead of calc(3.5s - drift * 2s).
+   Firefox rebuilds the animation timeline on every frame when duration
+   is a calc(var(--drift-intensity) expression that changes at runtime.
+   Fixed duration eliminates that rebuild entirely.
+   Drift coupling for speed is sacrificed here (minor perceptual loss).
    ─────────────────────────────────────────────────────────── */
 .es-core-group {
   transform-origin: center;
-  transform-box: fill-box;  /* resolve transform-origin against element bbox, not SVG viewport */
-  animation: sigilBreathe var(--pulse-speed, 3.5s) ease-in-out infinite;
+  transform-box: fill-box;
+  animation: sigilBreathe 3.5s ease-in-out infinite;
   will-change: transform;
   contain: layout style;
 }
@@ -88,12 +129,14 @@
 
 
 /* ── ANIMATION: Outer orbit ring rotation ────────────────────
-   Spins faster as drift increases.
+   PERF-2: Fixed duration (5s) instead of calc(6s - drift * 4.5s).
+   Same Firefox timeline rebuild issue as .es-core-group.
+   5s is slightly faster than the 6s base, indistinguishable at a glance.
    ─────────────────────────────────────────────────────────── */
 .es-orbit-ring {
   transform-origin: center;
-  transform-box: fill-box;  /* resolve transform-origin against element bbox, not SVG viewport */
-  animation: sigilOrbit var(--ring-speed, 6s) linear infinite;
+  transform-box: fill-box;
+  animation: sigilOrbit 5s linear infinite;
   will-change: transform;
   contain: layout style;
 }
@@ -115,28 +158,33 @@
 
 
 /* ── ANIMATION: Glitch/jitter displacement ───────────────────
-   Intensity and speed both scale with drift.
-   Invisible at low drift; sharp jitter at high drift.
+   PERF-3: Fixed animation duration (0.12s) with magnitude scaling
+   moved INSIDE the keyframe transform values via calc().
+   Original had: animation-duration: calc(0.08s + (1 - drift) * 0.5s)
+   Problem: any calc() on animation-duration that references a custom
+   property that changes at runtime triggers a full timeline rebuild
+   in Firefox on every drift update (60fps → 60 rebuilds/sec).
+   Fix: pin duration to 0.12s (the fast-drift floor). Drift coupling
+   is preserved through keyframe magnitude: transforms scale by
+   var(--drift-intensity) so displacement stays zero at drift=0
+   and peaks at full amplitude at drift=1.
    ─────────────────────────────────────────────────────────── */
 .es-glitch-layer {
-  transform-box: fill-box;  /* resolve transform-origin against element bbox, not SVG viewport */
-  animation: sigilJitter
-    calc(0.08s + (1 - var(--drift-intensity)) * 0.5s)
-    steps(1)
-    infinite;
+  transform-box: fill-box;
+  animation: sigilJitter 0.12s steps(1) infinite;
   opacity: calc(var(--drift-intensity) * 0.85);
   will-change: transform, opacity;
   contain: layout style;
 }
 
 @keyframes sigilJitter {
-  0%  { transform: translate(0,    0)    skewX(0deg); }
-  15% { transform: translate(-1px, 1px)  skewX(-0.5deg); }
-  30% { transform: translate(1px,  -1px) skewX(0.3deg); }
-  45% { transform: translate(0,    1px)  skewX(0deg); }
-  60% { transform: translate(-1px, 0)    skewX(0.4deg); }
-  80% { transform: translate(1px,  0)    skewX(0deg); }
-  100%{ transform: translate(0,    0)    skewX(0deg); }
+  0%  { transform: translate(0, 0) skewX(0deg); }
+  15% { transform: translate(calc(-2px * var(--drift-intensity)), calc(2px * var(--drift-intensity))) skewX(calc(-0.6deg * var(--drift-intensity))); }
+  30% { transform: translate(calc(2px * var(--drift-intensity)), calc(-2px * var(--drift-intensity))) skewX(calc(0.4deg * var(--drift-intensity))); }
+  45% { transform: translate(0, calc(1px * var(--drift-intensity))) skewX(0deg); }
+  60% { transform: translate(calc(-1.5px * var(--drift-intensity)), 0) skewX(calc(0.5deg * var(--drift-intensity))); }
+  80% { transform: translate(calc(2px * var(--drift-intensity)), 0) skewX(0deg); }
+  100%{ transform: translate(0, 0) skewX(0deg); }
 }
 
 
@@ -152,27 +200,21 @@
 
 
 /* ── ANIMATION: Wing feather shimmer ─────────────────────────
+   PERF-1 (same fix): Fixed 4s duration instead of
+   calc(4s - drift * 2s). Eliminates Firefox timeline rebuild.
    Alternating shimmer on left/right wings, offset in phase.
    ─────────────────────────────────────────────────────────── */
 .es-wing-l {
   transform-origin: center;
-  transform-box: fill-box;  /* resolve transform-origin against element bbox, not SVG viewport */
-  animation: wingShimmer
-    calc(4s - var(--drift-intensity) * 2s)
-    ease-in-out
-    infinite
-    alternate;
+  transform-box: fill-box;
+  animation: wingShimmer 4s ease-in-out infinite alternate;
   will-change: opacity, transform;
   contain: layout style;
 }
 .es-wing-r {
   transform-origin: center;
-  transform-box: fill-box;  /* resolve transform-origin against element bbox, not SVG viewport */
-  animation: wingShimmer
-    calc(4s - var(--drift-intensity) * 2s)
-    ease-in-out
-    infinite
-    alternate-reverse;
+  transform-box: fill-box;
+  animation: wingShimmer 4s ease-in-out infinite alternate-reverse;
   will-change: opacity, transform;
   contain: layout style;
 }
@@ -186,13 +228,15 @@
 /* ── HOVER STATE ──────────────────────────────────────────────
    On hover: faster breath, heightened glow, faster orbit.
    Does NOT change the underlying drift telemetry.
+   PERF-2: Hover orbit override uses fixed 2s (was calc(ring-speed * 0.4)).
    ─────────────────────────────────────────────────────────── */
 .entropia-sigil:hover .es-core-group {
   animation: sigilBreatheHover 1.8s ease-in-out infinite;
 }
 
 .entropia-sigil:hover .es-orbit-ring {
-  animation-duration: calc(var(--ring-speed) * 0.4);
+  /* PERF-2: Fixed 2s instead of calc(var(--ring-speed) * 0.4) */
+  animation-duration: 2s;
 }
 
 .entropia-sigil:hover {

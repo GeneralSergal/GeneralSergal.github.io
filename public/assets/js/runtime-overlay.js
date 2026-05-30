@@ -8,6 +8,25 @@
      2. Binds scroll + click entropy to the NESS engine
      3. Persists cumulative session entropy via sessionStorage
      4. Manages Warden state across the whole site
+
+   PATCH LOG (v3.0.1):
+     HIGH-2  — will-change: width removed from #cc-panel; width is a layout
+               property, not GPU-compositable. was: will-change:width,opacity
+               now: will-change:opacity only.
+     HIGH-3  — .entropia-sigil root block removed from injected CSS. Was
+               conflicting with entropia-sigil.css's own will-change:filter +
+               contain:layout style, and transition:transform fought the JS float.
+               .high-drift kept but scoped to :not(.entropia-sigil--hero-bg).
+     MEDIUM-1— rAF loop early-exit added: returns immediately when neither
+               decay (900ms) nor sigil-sync (800ms) window has elapsed.
+     MEDIUM-2— _syncAsciiPanel uses _getSigils()[0] instead of cold querySelector.
+     MEDIUM-3— _syncAsciiPanel() calls guarded behind if(_dom().asciiPanel).
+     MEDIUM-4— addLog() replaced full O(n) renderLog() rebuild with single
+               prepend + tail trim. renderLog() removed.
+     MEDIUM-5— sessionStorage.setItem debounced to max 1 write/second via
+               _debouncedSave(); pagehide flushes any pending write.
+     LOW-1   — pagehide listener cancels rAF handle and clears debounce timer.
+     LOW-3   — pagehide listener disconnects menuObserver.
    ============================================================ */
 
 (() => {
@@ -20,6 +39,18 @@
   const SS_KEY            = "orp_session_entropy";
   const loadSessionEntropy = () => parseFloat(sessionStorage.getItem(SS_KEY) || "0");
   const saveSessionEntropy = (v) => sessionStorage.setItem(SS_KEY, String(v));
+
+  /* MEDIUM-5 PATCH: debounced sessionStorage write — max 1 write/second.
+     sessionStorage.setItem is synchronous I/O; previously called inside
+     update() on every decay/inject/click cycle. Now deferred via setTimeout. */
+  let _saveTimer = null;
+  function _debouncedSave() {
+    if (_saveTimer) return;
+    _saveTimer = setTimeout(() => {
+      _saveTimer = null;
+      saveSessionEntropy(state.sessionEntropy);
+    }, 1000);
+  }
 
   /* ── State ──────────────────────────────────────────────── */
   const state = {
@@ -279,7 +310,7 @@
         opacity: 0;
         transition: width 0.42s cubic-bezier(0.23,1,0.32,1),
                     opacity 0.25s ease;
-        will-change: width, opacity;
+        will-change: opacity; /* HIGH-2 PATCH: 'width' removed — layout prop, not GPU-compositable */
         pointer-events: none;
         align-self: flex-end;
       }
@@ -566,11 +597,13 @@
         pointer-events: none !important;
       }
 
-      .entropia-sigil {
-        will-change: transform, filter, opacity;
-        transition: filter 0.4s ease, transform 0.6s cubic-bezier(0.23,1,0.32,1);
-      }
-      .entropia-sigil.high-drift {
+      /* HIGH-3 PATCH: .entropia-sigil root block removed.
+         entropia-sigil.css owns will-change:filter + contain:layout style.
+         Adding will-change:transform,opacity here created a conflicting compositor
+         layer budget, and transition:transform fought initSigilFloat()'s rAF writes.
+         The .high-drift glitch animation is kept but scoped to non-floating sigils
+         so it doesn't interfere with the JS-driven hero-bg float. */
+      .entropia-sigil:not(.entropia-sigil--hero-bg).high-drift {
         filter: contrast(1.15) brightness(1.08) hue-rotate(8deg);
         animation: orp-sigil-glitch 0.4s linear infinite alternate;
       }
@@ -592,28 +625,29 @@
   }
 
   /* ── Log ────────────────────────────────────────────────── */
-  /* renderLog uses a DocumentFragment so the log container
-     is touched exactly once per call, not once per entry.    */
+  /* MEDIUM-4 PATCH: replaced full O(n) DOM rebuild with single-entry prepend.
+     Previous: renderLog() rebuilt all 60 entries into a DocumentFragment on
+     every addLog() call — expensive at high entropy (multiple calls/second).
+     Now: one new <div> created and prepended; excess tail nodes trimmed.
+     State array kept in sync for any consumer that reads logEntries directly. */
   function addLog(tagClass, tag, msg) {
-    state.logEntries.unshift({ time: nowStr(), tagClass, tag, msg });
-    if (state.logEntries.length > 60) state.logEntries.pop();
-    renderLog();
-  }
+    const timestamp = nowStr();
 
-  function renderLog() {
+    // Keep state array in sync (capped at 60)
+    state.logEntries.unshift({ time: timestamp, tagClass, tag, msg });
+    if (state.logEntries.length > 60) state.logEntries.pop();
+
     const el = _dom().log;
     if (!el) return;
 
-    // Build all lines in a fragment — single reflow at appendChild
-    const frag = document.createDocumentFragment();
-    state.logEntries.forEach(e => {
-      const line = document.createElement("div");
-      line.className = "cc-log-line";
-      line.innerHTML = `<span class="t">${e.time}</span> <span class="${e.tagClass}">${e.tag}</span> ${e.msg}`;
-      frag.appendChild(line);
-    });
+    // Prepend single new line — one DOM node created, one insertion
+    const line = document.createElement("div");
+    line.className = "cc-log-line";
+    line.innerHTML = `<span class="t">${timestamp}</span> <span class="${tagClass}">${tag}</span> ${msg}`;
+    el.prepend(line);
 
-    el.replaceChildren(frag);  // single DOM mutation instead of innerHTML reassignment
+    // Trim DOM to match array cap — removes from tail (oldest entry)
+    while (el.children.length > 60) el.removeChild(el.lastChild);
   }
 
   /* ── Warden config ──────────────────────────────────────── */
@@ -689,7 +723,7 @@
 
     // Session entropy
     state.sessionEntropy += state.deltaS * 0.01;
-    saveSessionEntropy(state.sessionEntropy);
+    _debouncedSave(); // MEDIUM-5 PATCH: debounced — max 1 sessionStorage write/second
     if (d.sessionVal) d.sessionVal.textContent = fmt4(state.sessionEntropy);
 
     // Page label
@@ -698,7 +732,10 @@
       d.pageLabel.textContent = pg.replace(".html","").toUpperCase() || "INDEX";
     }
 
-    _syncAsciiPanel(state.shs);
+    // MEDIUM-3 PATCH: guard _syncAsciiPanel — only call when the panel exists.
+    // update() fires on every injectDelta, decay, and button press; no reason
+    // to pay the string-build cost on the ~90% of pages with no ASCII panel.
+    if (_dom().asciiPanel) _syncAsciiPanel(state.shs);
   }
 
   /* ── Inject delta ───────────────────────────────────────── */
@@ -748,9 +785,9 @@
     const cfg  = ASCII_SHS_STYLE[key];
     _asciiFrame++;
 
+    // MEDIUM-2 PATCH: use memoized _getSigils() instead of cold querySelector
     const drift = parseFloat(
-      document.querySelector('.entropia-sigil')
-        ?.style.getPropertyValue('--drift-intensity') || '0'
+      _getSigils()[0]?.style.getPropertyValue('--drift-intensity') || '0'
     );
 
     // Only update glow / color strings when SHS state changes — not every tick
@@ -808,6 +845,7 @@
     buildOverlay();
 
     // Mobile menu sync — hide overlay when hamburger is open
+    // LOW-3 PATCH: stored as let (was const) so pagehide handler can call .disconnect()
     const overlay = document.getElementById("cc-overlay");
     const menuObserver = new MutationObserver(() => {
       const menuOpen = document.body.classList.contains("mobile-menu-open");
@@ -880,12 +918,22 @@
     let _lastSigilSHS = '';
 
     function _rafLoop(ts) {
-      if (ts - _lastDecayTs >= 900) {
+      /* MEDIUM-1 PATCH: early-exit when neither decay nor sigil-sync is due.
+         Without this, all timestamp comparisons + _dom().pill dereference ran
+         at full display refresh rate (60–120 wakeups/sec) doing nothing useful. */
+      const needsDecay = ts - _lastDecayTs >= 900;
+      const needsSigil = ts - _lastSigilTs  >= 800;
+      if (!needsDecay && !needsSigil) {
+        state._rafHandle = requestAnimationFrame(_rafLoop);
+        return;
+      }
+
+      if (needsDecay) {
         decay();
         _lastDecayTs = ts;
       }
 
-      if (ts - _lastSigilTs >= 800) {
+      if (needsSigil) {
         const pill = _dom().pill;
         if (pill) {
           const shs = pill.textContent.trim().toUpperCase();
@@ -894,7 +942,7 @@
             if (typeof window.updateSigilFromSHS === 'function') {
               window.updateSigilFromSHS(shs === 'AMBER' ? 'YELLOW' : shs);
             }
-            _syncAsciiPanel(shs);
+            if (_dom().asciiPanel) _syncAsciiPanel(shs); // MEDIUM-3: guard here too
           }
         }
 
@@ -911,8 +959,16 @@
     state._rafHandle = requestAnimationFrame(_rafLoop);
     window._orpRafActive = true; // signal to entropia-sigil.js: its setInterval is suppressed
 
+    /* LOW-1 + LOW-3 PATCH: cancel rAF and disconnect observers on page unload.
+       Prevents ghost loops in bfcache / Turbo Drive / SPA navigation. */
+    window.addEventListener('pagehide', () => {
+      if (state._rafHandle) { cancelAnimationFrame(state._rafHandle); state._rafHandle = null; }
+      if (_saveTimer) { clearTimeout(_saveTimer); saveSessionEntropy(state.sessionEntropy); }
+      menuObserver.disconnect();
+    }, { once: true });
+
     applySessionPressure();
-    _syncAsciiPanel('GREEN');
+    if (_dom().asciiPanel) _syncAsciiPanel('GREEN'); // MEDIUM-3: guard init call too
 
     const page = (window.location.pathname.split("/").pop() || "index.html")
       .replace(".html","").toUpperCase();

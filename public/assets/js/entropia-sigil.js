@@ -8,6 +8,13 @@
    PUBLIC API:
      updateSigilDrift(0.0–1.0)   — set by numeric drift score
      updateSigilFromSHS('GREEN')  — set by SHS state string
+
+   PATCH LOG (v3.0.1):
+     HIGH-1  — getBoundingClientRect() moved out of rAF into WeakMap cache;
+               updated only by ResizeObserver + init. Zero layout reads at 60fps.
+     LOW-1   — pagehide listener cancels float rAF and cleans up ResizeObserver.
+     LOW-2   — orp-sigil-glitch (injected by runtime-overlay) scoped to
+               :not(.entropia-sigil--hero-bg) in runtime-overlay.js; no change needed here.
    ============================================================ */
 
 (function (global) {
@@ -198,6 +205,12 @@
 
      DRIFT COUPLING: amplitude and speed scale with drift so
      the sigil floats more erratically at high entropy.
+
+     PATCH HIGH-1: sigil geometry (halfW/halfH/cx/cy) is cached
+     in a WeakMap and read from CSS-fixed dimensions instead of
+     getBoundingClientRect() per frame. Cache is populated once
+     at init and refreshed in the ResizeObserver callback.
+     Result: zero layout reads at 60fps.
   ─────────────────────────────────────────────────────────── */
   function initSigilFloat() {
     const DESKTOP_BP  = 701;
@@ -215,6 +228,32 @@
 
     // Cache nav height — stable between resizes; avoids getBoundingClientRect per frame
     let _navH = _navEl ? _navEl.getBoundingClientRect().height : 0;
+
+    /* ── HIGH-1 FIX: geometry WeakMap cache ─────────────────
+       Stores { halfW, halfH, cx, cy } per hero-bg sigil.
+       Populated at init + on resize. Never read inside _tick.
+       cx/cy are the fixed anchor point (CSS top/right), not
+       the live painted position — that's what we feed the
+       clamp math, which only needs to know the resting center.
+    ─────────────────────────────────────────────────────────── */
+    const _geomCache = new WeakMap();
+
+    function _cacheSigilGeometry(sigil) {
+      // One controlled getBoundingClientRect — called only at init and on resize
+      const rect = sigil.getBoundingClientRect();
+      _geomCache.set(sigil, {
+        halfW: rect.width  / 2,
+        halfH: rect.height / 2,
+        cx:    rect.left   + rect.width  / 2,
+        cy:    rect.top    + rect.height / 2,
+      });
+    }
+
+    function _cacheAllHeroBg() {
+      _getSigils().forEach(s => {
+        if (s.classList.contains('entropia-sigil--hero-bg')) _cacheSigilGeometry(s);
+      });
+    }
 
     document.addEventListener('visibilitychange', () => {
       _paused = document.hidden;
@@ -247,11 +286,15 @@
         const tx = Math.sin((ts * spdMul) / PERIOD_X * Math.PI * 2) * ampX;
         const ty = Math.sin((ts * spdMul) / PERIOD_Y * Math.PI * 2 + 0.9) * ampY;
 
-        const rect  = sigil.getBoundingClientRect();
-        const halfW = rect.width  / 2;
-        const halfH = rect.height / 2;
-        const cx    = rect.left + halfW;
-        const cy    = rect.top  + halfH;
+        /* HIGH-1 FIX: read from WeakMap cache — zero layout cost */
+        let geom = _geomCache.get(sigil);
+        if (!geom) {
+          // First-frame grace: populate synchronously, then continue
+          _cacheSigilGeometry(sigil);
+          geom = _geomCache.get(sigil);
+          if (!geom) { if (!_paused) _schedule(); return; } // safety guard
+        }
+        const { halfW, halfH, cx, cy } = geom;
 
         const clampedTx = Math.min(window.innerWidth  - EDGE_INSET - halfW - cx,
                            Math.max(EDGE_INSET + halfW - cx, tx));
@@ -272,6 +315,7 @@
       clearTimeout(_resizeTimer);
       _resizeTimer = setTimeout(() => {
         _navH = _navEl ? _navEl.getBoundingClientRect().height : 0; // refresh cached nav height
+        _cacheAllHeroBg(); // HIGH-1 FIX: refresh geometry cache on resize
         if (window.innerWidth < DESKTOP_BP) {
           _getSigils().forEach(s => {
             if (s.classList.contains('entropia-sigil--hero-bg')) s.style.transform = '';
@@ -284,7 +328,19 @@
     });
     _resizeObs.observe(document.body);
 
-    if (window.innerWidth >= DESKTOP_BP) _schedule();
+    /* LOW-1 FIX: cancel rAF and disconnect ResizeObserver on page unload.
+       Prevents ghost loops in bfcache / Turbo Drive / SPA navigation. */
+    window.addEventListener('pagehide', () => {
+      if (_rafHandle) { cancelAnimationFrame(_rafHandle); _rafHandle = null; }
+      _resizeObs.disconnect();
+      if (_resizeTimer) { clearTimeout(_resizeTimer); _resizeTimer = null; }
+    }, { once: true });
+
+    // Populate geometry cache before first tick — no layout read inside rAF
+    if (window.innerWidth >= DESKTOP_BP) {
+      _cacheAllHeroBg();
+      _schedule();
+    }
   }
 
 

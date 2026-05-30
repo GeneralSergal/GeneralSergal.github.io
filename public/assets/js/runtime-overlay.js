@@ -111,8 +111,13 @@
     return _domCache;
   }
 
-  /* ── Inject overlay HTML ────────────────────────────────── */
+/* ── Inject overlay HTML ────────────────────────────────── */
   function buildOverlay() {
+    // Detect environment to set the correct Console URL
+    const isORPContext = window.location.pathname.includes('/ORP');
+    const runtimeUrl = isORPContext ? 'runtime.html' : 'https://generalsergal.github.io/ORP/runtime.html';
+    const linkTarget = isORPContext ? '' : ' target="_blank" rel="noopener noreferrer"';
+
     const div = document.createElement("div");
     div.id = "cc-overlay";
     div.setAttribute("aria-label", "Clinical Core NESS Overlay");
@@ -188,7 +193,7 @@
           <div class="cc-controls">
             <button class="cc-btn" id="cc-inject">[ INJECT ΔS ]</button>
             <button class="cc-btn" id="cc-reset">[ RESET ]</button>
-            <a href="runtime.html" class="cc-btn cc-btn-link">[ FULL CONSOLE ]</a>
+            <a href="${runtimeUrl}" class="cc-btn cc-btn-link"${linkTarget}>[ FULL CONSOLE ]</a>
           </div>
 
         </div>

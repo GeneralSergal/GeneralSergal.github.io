@@ -60,6 +60,12 @@
   --transition: 250ms cubic-bezier(0.2, 0, 0, 1);
 }
 
+.author-avatar-link {
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
 
 /* Font Hierarchy */
 h1, h2, h3, .section-title, .logo, .pipeline-step, .section-eyebrow,

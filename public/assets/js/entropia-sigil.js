@@ -1,6 +1,6 @@
 /* ============================================================
    ENTROPIA SIGIL — JavaScript Module
-   ORP Δ v3.2.0 | entropia-sigil.js
+   ORP Δ v3.2.1 | entropia-sigil.js
 
    DROP-IN: Add <script src="assets/js/entropia-sigil.js"></script>
    to your page's <body> end, AFTER main.js and runtime-overlay.js.
@@ -15,7 +15,7 @@
      window.SIGIL_IDLE_MS   — ms idle before drift-back (default 3000)
      window.SIGIL_MAX_LEAN  — max px displacement (default 45)
 
-   PATCH LOG (v3.2.0 — Mouse-Tracking LERP + SHS Motion Profiles):
+   PATCH LOG (v3.2.1 — Warden Unleashed Update):
      MOTION-1  — Replaced full-viewport Lissajous with mouse-tracking LERP.
                  Sigil follows cursor with dampened, viscous lag.
      MOTION-2  — SHS-driven motion personality:
@@ -28,6 +28,10 @@
      MOTION-4  — Top-right anchor: default spawn position upper-right quadrant.
      MOTION-5  — setSigilMotion(params) public API for runtime config.
      MOTION-6  — EASE, IDLE_MS, MAX_LEAN exposed as window globals for ORP_SYNC.
+     MOTION-7  — WARDEN UNLEASHED: When MAX_LEAN >= 90 (RED/BLACK states), the 
+                 dampening leash is removed. The sigil will fully track the cursor
+                 across the entire viewport. Wrapper appended to document.body to 
+                 escape CSS transform containing-block traps.
      FF-1      — FF-1 fix preserved: transform on .es-float-wrapper wrapper div.
      FF-2/3    — Firefox GPU layer guards preserved.
      PERF-1    — rAF timestamp accumulator pattern (no Date.now() in hot path).
@@ -59,7 +63,7 @@
   /* ── Runtime-settable globals (MOTION-6, ORP_SYNC bridge) ── */
   global.SIGIL_EASE     = global.SIGIL_EASE     ?? 0.03;
   global.SIGIL_IDLE_MS  = global.SIGIL_IDLE_MS  ?? 3000;
-  global.SIGIL_MAX_LEAN = global.SIGIL_MAX_LEAN  ?? 45;
+  global.SIGIL_MAX_LEAN = global.SIGIL_MAX_LEAN ?? 45;
 
   /* ── Memoization state ────────────────────────────────────── */
   let _lastIntensity  = -1;
@@ -263,6 +267,7 @@
      MOTION-3: Hard viewport-edge clamping — sigil never exits.
      MOTION-4: Default spawn upper-right quadrant.
      MOTION-6: Reads EASE/IDLE_MS/MAX_LEAN from window globals each tick.
+     MOTION-7: Warden Unleashed — breaks DOM traps and hunting leash.
 
      FF-1 FIX: transform applied to .es-float-wrapper div, never the SVG.
      PERF-1: rAF timestamp for all timing; no Date.now() in hot path.
@@ -331,14 +336,6 @@
     /* ────────────────────────────────────────────────────────
        _tick(ts)
        Core LERP motion loop.
-
-       Each frame:
-         1. Read EASE/IDLE_MS/MAX_LEAN from window globals (MOTION-6).
-         2. Compute target offset from cursor position, or 0 if idle.
-         3. Dampening: clamp target to MAX_LEAN radius circle.
-         4. LERP leanX/Y toward target by EASE factor.
-         5. Hard-clamp final lean to viewport-safe bounds (MOTION-3).
-         6. Write transform to .es-float-wrapper (FF-1).
     ──────────────────────────────────────────────────────── */
     function _tick(ts) {
       _rafHandle = null;
@@ -366,24 +363,33 @@
         }
         const { halfW, halfH, vw, vh } = geom;
 
-        /* ── Compute target offset from cursor (MOTION-1) ── */
+        /* ── MOTION-7: Warden Unleashed Logic ────────────── */
         const idle = curX < 0 || (performance.now() - lastMoveTs) > IDLE_MS;
+        const isHunting = MAX_LEAN >= 90; // True for RED and BLACK profiles
+
+        const anchorX = vw  * 0.82;             /* MOTION-4: top-right x */
+        const anchorY = _navH + halfH + 12;     /* MOTION-4: just below nav */
 
         let targetX, targetY;
-        if (idle) {
-          /* Drift back to top-right home when idle (MOTION-4) */
+        
+        if (idle && !isHunting) {
+          /* Drift back to top-right home when idle (unless hunting) */
           targetX = 0;
           targetY = 0;
+        } else if (isHunting) {
+          /* Unleash the Warden: Go exactly to the cursor's absolute coordinate */
+          targetX = curX - anchorX;
+          targetY = curY - anchorY;
         } else {
-          /* Map cursor to [-MAX_LEAN, MAX_LEAN] offset range.
-             Cursor at center → 0 offset. At edges → ±MAX_LEAN. */
+          /* Standard tethered leaning for GREEN/YELLOW/ORANGE */
           targetX = ((curX / vw)  - 0.5) * 2 * MAX_LEAN;
           targetY = ((curY / vh) - 0.5) * 2 * MAX_LEAN;
         }
 
         /* ── Dampening: clamp target inside MAX_LEAN radius ─ */
         const dist = Math.sqrt(targetX * targetX + targetY * targetY);
-        if (dist > MAX_LEAN) {
+        // MOTION-7: Only enforce the short leash if it is NOT actively hunting
+        if (dist > MAX_LEAN && !isHunting) {
           const ratio = MAX_LEAN / dist;
           targetX *= ratio;
           targetY *= ratio;
@@ -394,11 +400,6 @@
         leanY += (targetY - leanY) * EASE;
 
         /* ── Hard viewport-edge clamp (MOTION-3) ─────────── */
-        /* Wrapper is anchored at top-right quadrant. Compute
-           absolute position and clamp to visible viewport. */
-        const anchorX = vw  * 0.82;            /* MOTION-4: top-right x */
-        const anchorY = _navH + halfH + 12;     /* MOTION-4: just below nav */
-
         /* Resulting screen position of sigil center */
         const screenX = anchorX + leanX;
         const screenY = anchorY + leanY;
@@ -415,15 +416,20 @@
         const clampedLeanX = safeX - anchorX;
         const clampedLeanY = safeY - anchorY;
 
-        /* ── Subtle tilt mirroring the lean (atmospheric) ── */
-        const tiltX = (-clampedLeanY * 0.15).toFixed(2);
-        const tiltY = ( clampedLeanX * 0.15).toFixed(2);
+   /* ── Subtle tilt mirroring the lean (atmospheric) ── */
+// 1. Reduce the multiplier since the travel distance is massive now
+let rawTiltX = -clampedLeanY * 0.02; 
+let rawTiltY =  clampedLeanX * 0.02;
 
-        /* ── FF-1 FIX: write transform to WRAPPER, not sigil ─
+// 2. Add a hard clamp (e.g., max 5 degrees) so it never flips over
+const maxTilt = 5;
+const tiltX = Math.max(-maxTilt, Math.min(maxTilt, rawTiltX)).toFixed(2);
+const tiltY = Math.max(-maxTilt, Math.min(maxTilt, rawTiltY)).toFixed(2);
+
+        /* ── FF-1 FIX & MOTION-7 DOM ESCAPE ─────────────────
            Lazily create wrapper on first tick if not present.  */
         let wrapper = sigil._esFloatWrapper;
         if (!wrapper) {
-          const parent = sigil.parentElement;
           const w = document.createElement('div');
           w.className = 'es-float-wrapper';
 
@@ -435,10 +441,12 @@
             'margin:0',
             'will-change:transform',    /* FF-1: only on wrapper */
             'pointer-events:none',
-            'z-index:1',
+            'z-index:9999',             /* MOTION-7: Elevated to float over all content */
             'isolation:auto',           /* FF-2: no stacking context */
           ].join(';');
-          parent?.insertBefore(w, sigil);
+          
+          /* MOTION-7 FIX: Break out of nested DOM traps (like transform on hero containers) */
+          document.body.appendChild(w);
           w.appendChild(sigil);
           sigil._esFloatWrapper = w;
           wrapper = w;
@@ -454,8 +462,6 @@
     }
 
     /* ── Float toggle support ─────────────────────────────── */
-    /* setSigilMotion can pause the float by setting _floatEnabled.
-       We expose a setter on the IIFE scope via a shared flag ref.  */
     global._sigilSetFloat = function(enabled) {
       _floatEnabled = !!enabled;
       if (_floatEnabled && !_rafHandle && !_paused) _schedule();
@@ -709,7 +715,3 @@
   }
 
 }());
-/* ============================================================
-   ENTROPIA SIGIL — JavaScript Module
-   ORP Δ v3.2.0 | entropia-sigil.js
-   ============================================================ */

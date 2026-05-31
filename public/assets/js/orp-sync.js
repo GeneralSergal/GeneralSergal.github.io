@@ -1,5 +1,5 @@
 /* ============================================================
-   ORP v3.0 | GLOBAL SYNC LAYER  (orp-sync.js)
+   ORP v3.1 | GLOBAL SYNC LAYER  (orp-sync.js)
    ============================================================
    Load via <script src="assets/js/orp-sync.js"></script>
    in the <head> of every page, BEFORE all other scripts.
@@ -10,11 +10,38 @@
      ORP_SYNC.remove(key)          — delete + broadcast null
      ORP_SYNC.resetAll()           — nuke all orp_* keys to defaults
      ORP_SYNC.snapshot()           — get all current settings
+     ORP_SYNC.default(key)         — read canonical default for a key
 
    EVENT BUS:
      CustomEvent 'orp-settings-update' fires on window for
      every save/remove call so sibling tabs react in real time.
      e.detail = { key: string, value: any }
+
+   MANAGED KEYS:
+     Sigil / Visual
+       sigil_drift      — 0.0–1.0 drift intensity
+       shs_override     — forced SHS state string, or null
+       overlay_visible  — NESS HUD shown/hidden
+
+     Motion Parameters (synced to entropia-sigil.js globals)
+       sigil_ease       — LERP smoothing factor     (default 0.03)
+       sigil_idle_ms    — ms before idle drift-back (default 3000)
+       sigil_max_lean   — max px displacement       (default 45)
+       sigil_float      — mouse-tracking enabled    (default true)
+
+     NESS / Clinical-Core (bridged from runtime-overlay.js)
+       ness_entropy        — cumulative session ΔΣ  (default 0)
+       ness_pressure       — SHS state string       (default 'GREEN')
+       ness_warden_active  — Warden MANIFEST flag   (default false)
+
+   PATCH LOG:
+     v3.1.0 — Added NESS keys (ness_entropy, ness_pressure,
+               ness_warden_active) so overlay state survives
+               page reloads and propagates cross-tab.
+             — Corrected motion defaults to match settings.html
+               sliders: ease 0.03, idle_ms 3000, max_lean 45.
+               Old values (0.05 / 2000 / 15) caused slider
+               mismatch after ORP_SYNC.resetAll().
    ============================================================ */
 
 (function (global) {
@@ -22,14 +49,26 @@
 
   /* ── Canonical defaults ──────────────────────────────────── */
   const DEFAULTS = {
+    // Sigil / visual
     sigil_drift:     0.5,
     shs_override:    null,
     overlay_visible: true,
+
     // Motion Parameters
-    sigil_ease:      0.05,
-    sigil_idle_ms:   2000,
-    sigil_max_lean:  15,
-    sigil_float:     true
+    // NOTE: these must match the fallback values used in settings.html
+    // (0.03 / 3000 / 45) and in entropia-sigil.js initSigilFloat().
+    // The old values (0.05 / 2000 / 15) were stale and caused the
+    // settings sliders to reset to wrong positions on ORP_SYNC.resetAll().
+    sigil_ease:      0.03,
+    sigil_idle_ms:   3000,
+    sigil_max_lean:  45,
+    sigil_float:     true,
+
+    // NESS / Clinical-Core overlay persistence
+    // Bridged into runtime-overlay.js via the ORP_SYNC wakeup block.
+    ness_entropy:       0,        // cumulative session ΔΣ (float)
+    ness_pressure:      'GREEN',  // SHS state string
+    ness_warden_active: false,    // Warden MANIFEST flag
   };
 
   /* ── Prefix helper ───────────────────────────────────────── */

@@ -277,39 +277,39 @@
   transform: none;
   opacity: 0.28;
   pointer-events: none !important;
-  z-index: 0;
+z-index: -9999 !important;
   overflow: hidden;
   width: min(180px, 48vw) !important;   /* slightly smaller so it never clips */
   height: min(180px, 48vw) !important;
 }
 
-@media (min-width: 701px) {
+ @media (min-width: 701px) {
   .entropia-sigil--hero-bg {
-    /* Desktop: fixed, JS drives position via translate3d each rAF.
-       top/right establish the resting anchor; JS overrides transform. */
     position: fixed;
-    top: 50vh;
-    right: 20px;
-    /* translate3d set by JS; translateY(-50%) is the pre-JS fallback */
+z-index: -9999 !important;
     transform: translateY(-50%);
     opacity: 0.20;
-    z-index: 1;
+    
+    
+    /* 2. Isolate the layer so it doesn't get merged into text-parent containers */
+    isolation: isolate; 
+    
+    /* 3. Ensure it doesn't eat mouse clicks meant for your text */
+    pointer-events: none; 
+    /* MODIFICATION END */
+    
     width: 340px !important;
     height: 340px !important;
     overflow: visible;
-    /* Soft atmospheric fade at edges */
     mask-image: radial-gradient(ellipse 75% 75% at 50% 50%, black 45%, transparent 80%);
     -webkit-mask-image: radial-gradient(ellipse 75% 75% at 50% 50%, black 45%, transparent 80%);
-    /* GPU: JS writes transform every rAF — own compositor layer */
     will-change: transform;
-    /* Smooth out the JS steps slightly — 120ms lag reads as organic */
     transition: opacity 800ms ease;
   }
-}
+} 
 
 @media (min-width: 1100px) {
   .entropia-sigil--hero-bg {
-    right: 40px;
     width: 380px !important;
     height: 380px !important;
     opacity: 0.22;
@@ -318,7 +318,7 @@
 
 @media (min-width: 1400px) {
   .entropia-sigil--hero-bg {
-    right: 60px;
+
     opacity: 0.24;
     width: 440px !important;
     height: 440px !important;

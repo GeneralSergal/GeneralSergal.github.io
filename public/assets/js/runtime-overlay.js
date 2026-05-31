@@ -79,9 +79,23 @@
   if (document.getElementById("cc-overlay")) return;
 
   /* ── Session entropy persistence ───────────────────────── */
-  const SS_KEY            = "orp_session_entropy";
-  const loadSessionEntropy = () => parseFloat(sessionStorage.getItem(SS_KEY) || "0");
-  const saveSessionEntropy = (v) => sessionStorage.setItem(SS_KEY, String(v));
+  /* NESS-SYNC: Prefer ORP_SYNC (localStorage + cross-tab broadcast)
+     over bare sessionStorage.  Falls back silently when orp-sync.js
+     is absent so this file remains independently deployable. */
+  const SS_KEY            = "orp_session_entropy";   /* legacy key kept for backward compat */
+  const loadSessionEntropy = () => {
+    if (window.ORP_SYNC) {
+      return parseFloat(ORP_SYNC.load('ness_entropy', 0)) || 0;
+    }
+    return parseFloat(sessionStorage.getItem(SS_KEY) || "0");
+  };
+  const saveSessionEntropy = (v) => {
+    if (window.ORP_SYNC) {
+      ORP_SYNC.save('ness_entropy', v);
+      return;
+    }
+    sessionStorage.setItem(SS_KEY, String(v));
+  };
 
   /* MEDIUM-5 PATCH: debounced sessionStorage write */
   let _saveTimer = null;
@@ -933,6 +947,14 @@
     _debouncedSave();
     if (d.sessionVal) d.sessionVal.textContent = fmt4(state.sessionEntropy);
 
+    /* NESS-SYNC: Persist SHS pressure + Warden flag cross-tab */
+    if (window.ORP_SYNC) {
+      const shsNow     = window._orpSHSState.currentState;
+      const wardenNow  = state.wardenState === 'MANIFEST';
+      ORP_SYNC.save('ness_pressure',      shsNow);
+      ORP_SYNC.save('ness_warden_active', wardenNow);
+    }
+
     if (d.pageLabel) {
       const pg = window.location.pathname.split("/").pop() || "index.html";
       d.pageLabel.textContent = pg.replace(".html","").toUpperCase() || "INDEX";
@@ -1063,6 +1085,14 @@
   function init() {
     buildStyles();
     buildOverlay();
+
+    /* NESS-SYNC: Apply persisted overlay visibility immediately on load */
+    if (window.ORP_SYNC) {
+      const visible = ORP_SYNC.load('overlay_visible', true);
+      if (visible === false) {
+        document.getElementById('cc-overlay')?.classList.add('cc-hidden');
+      }
+    }
 
     const overlay    = document.getElementById("cc-overlay");
     const navElement = document.getElementById("main-nav");
@@ -1254,6 +1284,23 @@
 
     applySessionPressure();
     if (_dom().asciiPanel) _syncAsciiPanel('GREEN');
+
+    /* NESS-SYNC: React to ORP_SYNC changes fired from other tabs.
+       If another page boosts entropy or triggers Warden, this
+       overlay updates instantly without a reload. */
+    window.addEventListener('orp-settings-update', (e) => {
+      if (!e.detail) return;
+      const { key, value } = e.detail;
+      if (key === 'ness_entropy' && typeof value === 'number') {
+        /* Re-hydrate session entropy from another tab's write */
+        state.sessionEntropy = value;
+        if (_dom().sessionVal) _dom().sessionVal.textContent = fmt4(value);
+      }
+      if (key === 'overlay_visible') {
+        const overlay = document.getElementById('cc-overlay');
+        overlay?.classList.toggle('cc-hidden', value === false);
+      }
+    });
 
     const page = (window.location.pathname.split("/").pop() || "index.html")
       .replace(".html","").toUpperCase();

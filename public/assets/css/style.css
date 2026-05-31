@@ -283,10 +283,7 @@ body {
   -webkit-font-smoothing: antialiased;
   letter-spacing: 0.15px;
 }
-
 a { color: var(--accent-orange); text-decoration: none; transition:
-  background var(--transition),
-  border-color var(--transition),
   transform var(--transition),
   opacity var(--transition); cursor: pointer; }
 a:hover { color: var(--accent-orange-bright); }
@@ -548,7 +545,6 @@ nav.nav-hidden {
 .hamburger-btn span:nth-child(3) { top: 33px; }
 
 .hamburger-btn.active span:nth-child(1) {
-  top: 25px;
   transform: translateX(-50%) rotate(45deg);
   background: var(--accent-orange);
 }
@@ -558,7 +554,6 @@ nav.nav-hidden {
 }
 
 .hamburger-btn.active span:nth-child(3) {
-  top: 25px;
   transform: translateX(-50%) rotate(-45deg);
   background: var(--accent-orange);
 }
@@ -1381,6 +1376,7 @@ h2, h3, .section-title {
   background: rgba(22, 26, 34, 0.95);
   border: 1px solid rgba(221, 17, 17, 0.45);
   min-height: 260px;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .rc-layer-card:hover {
@@ -1771,3 +1767,193 @@ h2, h3, .section-title {
   }
 }
 
+
+
+
+
+/* ============================================================
+   ORP v3.0 — Firefox Performance Patch
+   Appended after all existing rules so the cascade always wins.
+
+   VERIFIED ISSUES (confirmed in source before patching):
+     FF-1  backdrop-filter blur on nav + .mini-telemetry-card
+           Firefox compositor is measurably slower than Chromium
+           for blur passes, especially during scroll. Removing it
+           in Firefox and bumping background opacity preserves the
+           visual intent (frosted panel) at near-zero GPU cost.
+
+     FF-2  filter: drop-shadow on .logo-mark base + hover state
+           (.logo-mark--active). Firefox is slower at compositing
+           animated filter chains. The idle SHS glow and hover glow
+           are replaced with a pseudo-element radial gradient that
+           animates only opacity + transform — both compositor-only.
+           NOTE: .logo-mark--pulse and .logo-mark--clicked are
+           intentional brief one-shot bursts; their filter keyframes
+           are retained because they run for ≤0.65s and stopping
+           them would break the design intent.
+
+     FF-3  mix-blend-mode: screen on .logo-mark .orp-scanline
+           Already bounded by isolation:isolate on .logo-mark, so
+           it does not bleed — but Firefox still pays the blend cost.
+           Only visible above drift ~0.4 anyway; fallback to opacity
+           only is visually indistinguishable at that subtlety.
+
+     FF-4  Permanent will-change on static/infrequently animated
+           elements. .grid-bg and .glow never animate; keeping them
+           as promoted compositor layers wastes GPU memory and adds
+           layer management overhead. .scroll-top only animates when
+           the user hovers; permanent promotion is unnecessary.
+
+     FF-5  .orp-glitch-layer: animation always running even at
+           drift=0. Already invisible (opacity calc() → 0) but
+           Firefox still schedules the 0.12s steps() ticker every
+           frame. Pausing via animation-play-state when drift is
+           zero costs nothing visually and reduces compositor work.
+
+     FF-6  text-rendering: geometricPrecision on headings.
+           Firefox may regress performance on large animated pages
+           with this hint. Switched to optimizeLegibility (retains
+           kerning/ligature quality without the extra rasterisation
+           pass geometricPrecision implies in some FF builds).
+   ============================================================ */
+
+
+/* ── FF-1: Disable backdrop-filter in Firefox ────────────────
+   @-moz-document url-prefix() matches Firefox only.
+   Background opacity raised to compensate for loss of blur.
+   nav.menu-open already sets backdrop-filter:none — unchanged.
+   ────────────────────────────────────────────────────────── */
+@-moz-document url-prefix() {
+
+  nav {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    /* Raise opacity so the panel reads as solid without the blur */
+    background: rgba(6, 8, 11, 0.97) !important;
+  }
+
+  .orp-compact-scope .mini-telemetry-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    /* Match the card's existing background-color at full opacity */
+    background-color: rgba(22, 26, 34, 0.97) !important;
+  }
+
+
+  /* ── FF-2: Replace animated drop-shadow on logo with pseudo-element glow
+     The base idle glow and hover glow are replaced with a pseudo-element
+     that animates only opacity and transform — both GPU-compositable.
+     .logo-mark::before already exists on Chromium as the outer diamond
+     shape (clip-path polygon) — those properties are reset here inside
+     the Firefox-only block so this glow replaces them safely in FF.
+     .logo-mark--pulse and .logo-mark--clicked keyframes are intentional
+     burst effects and are left untouched.
+     ──────────────────────────────────────────────────────────────────── */
+
+  /* Remove the CSS filter from the base idle state */
+  .logo-mark {
+    filter: none !important;
+    /* Remove the filter transition — nothing to transition anymore */
+    transition: none !important;
+  }
+
+  /* Pseudo-element glow: replaces diamond shape in Firefox only.
+     Sits behind the SVG via z-index:-1 inside the isolation:isolate context. */
+  .logo-mark::before {
+    /* Reset the Chromium diamond-shape geometry */
+    clip-path: none !important;
+    border: none !important;
+    width: auto !important;
+    height: auto !important;
+    top: auto !important;
+    left: auto !important;
+    /* Glow geometry */
+    inset: -10px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      var(--lm-shs-glow, rgba(63, 185, 80, 0.25)) 0%,
+      transparent 70%
+    ) !important;
+    opacity: 0.75;
+    z-index: -1;
+    transform: scale(1);
+    /* Animating only compositor-safe properties */
+    transition: opacity 300ms ease, transform 300ms ease !important;
+  }
+
+  /* Hover: boost glow via opacity + scale instead of filter */
+  .logo-mark--active::before {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+
+  /* Remove the filter override on the hover state */
+  .logo-mark--active {
+    filter: none !important;
+  }
+
+
+  /* ── FF-3: Disable mix-blend-mode on scanlines ───────────────
+     Scanlines are only visible above drift ~0.4; at that subtlety
+     reverting to normal blend + halved opacity is visually equivalent.
+     ────────────────────────────────────────────────────────── */
+  .logo-mark .orp-scanline {
+    mix-blend-mode: normal !important;
+    opacity: calc((var(--lm-drift-intensity) - 0.4) * 0.75) !important;
+  }
+
+
+  /* ── FF-4: Release will-change on static / infrequent elements ─
+     .grid-bg and .glow never animate — promoted layers waste VRAM.
+     .scroll-top only animates on hover — permanent promotion is
+     unnecessary; the browser will promote on demand automatically.
+     Elements with active per-frame animations retain will-change.
+     ────────────────────────────────────────────────────────── */
+  .grid-bg {
+    will-change: auto;
+  }
+
+  .glow {
+    will-change: auto;
+  }
+
+  .scroll-top {
+    will-change: auto;
+  }
+
+
+  /* ── FF-5: Pause glitch layer when drift is zero ─────────────
+     At shs-green (--lm-drift-intensity: 0) the layer is already
+     invisible via opacity:calc(0 * 0.80) = 0, but the 0.12s
+     steps() animation still runs every frame. Pause it.
+     Explicitly resume for all non-zero drift states.
+     ────────────────────────────────────────────────────────── */
+  .logo-mark.shs-green .orp-glitch-layer {
+    animation-play-state: paused !important;
+  }
+
+  .logo-mark.shs-yellow .orp-glitch-layer,
+  .logo-mark.shs-orange .orp-glitch-layer,
+  .logo-mark.shs-red    .orp-glitch-layer,
+  .logo-mark.shs-black  .orp-glitch-layer {
+    animation-play-state: running !important;
+  }
+
+
+  /* ── FF-6: Switch text-rendering on headings ─────────────────
+     geometricPrecision can cause extra rasterisation passes in
+     Firefox on pages with many animated elements. optimizeLegibility
+     retains kerning and ligature quality at lower cost in FF.
+     ────────────────────────────────────────────────────────── */
+  h1,
+  h2,
+  h3,
+  .section-title,
+  .logo,
+  .btn,
+  .badge {
+    text-rendering: optimizeLegibility !important;
+  }
+
+} /* end @-moz-document url-prefix() */

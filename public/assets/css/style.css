@@ -1774,14 +1774,14 @@ h2, h3, .section-title {
 
 /* ═══════════════════════════════════════════════════════════════
    CONTEXT SIZES
-   .logo-mark in the nav is already 18×18 from base style.css.
+   .logo-mark in the nav is already 36×36 from base style.css.
    These classes allow larger logo-marks elsewhere (hero, splash).
    ═══════════════════════════════════════════════════════════════ */
 
-/* Nav default — preserve existing 18×18 */
+
 nav .logo-mark {
-  width:  18px;
-  height: 18px;
+  width:  36px;
+  height: 36px;
 }
 
 /* Medium standalone logo */

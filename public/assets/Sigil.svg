@@ -1,0 +1,124 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="esGlowCore" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="3" result="blur1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur2"/>
+      <feMerge><feMergeNode in="blur2"/><feMergeNode in="blur1"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="esGlowOuter" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="esGlowCyan" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="esGlowSoft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <radialGradient id="esCoreFill" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#ff4400" stop-opacity="0.25"/>
+      <stop offset="60%"  stop-color="#dd1111" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#dd1111" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="esAuraGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#ff6600" stop-opacity="0.12"/>
+      <stop offset="70%"  stop-color="#dd1111" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <linearGradient id="esWingGradL" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#dd1111" stop-opacity="0.7"/>
+      <stop offset="50%"  stop-color="#ff4400" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#ff6600" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="esWingGradR" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#dd1111" stop-opacity="0.7"/>
+      <stop offset="50%"  stop-color="#ff4400" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#ff6600" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="esCyanGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#00d4ff" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0.3"/>
+    </linearGradient>
+    <clipPath id="esScanClip"><rect x="0" y="0" width="200" height="200"/></clipPath>
+  </defs>
+  <circle cx="100" cy="100" r="92" fill="url(#esAuraGrad)"/>
+  <g class="es-orbit-ring" style="transform-origin:100px 100px;">
+    <circle cx="100" cy="100" r="85" fill="none" stroke="#dd1111" stroke-width="0.5" stroke-opacity="0.20" stroke-dasharray="4 8"/>
+    <circle cx="100" cy="15"  r="2.2" fill="#dd1111" fill-opacity="0.55" filter="url(#esGlowSoft)"/>
+    <circle cx="185" cy="100" r="2.2" fill="#ff6600" fill-opacity="0.55" filter="url(#esGlowSoft)"/>
+    <circle cx="100" cy="185" r="2.2" fill="#dd1111" fill-opacity="0.55" filter="url(#esGlowSoft)"/>
+    <circle cx="15"  cy="100" r="2.2" fill="#ff6600" fill-opacity="0.55" filter="url(#esGlowSoft)"/>
+    <line x1="157" y1="26"  x2="161" y2="22"  stroke="#dd1111" stroke-width="1" stroke-opacity="0.35"/>
+    <line x1="174" y1="157" x2="178" y2="161" stroke="#dd1111" stroke-width="1" stroke-opacity="0.35"/>
+    <line x1="43"  y1="174" x2="39"  y2="178" stroke="#dd1111" stroke-width="1" stroke-opacity="0.35"/>
+    <line x1="26"  y1="43"  x2="22"  y2="39"  stroke="#dd1111" stroke-width="1" stroke-opacity="0.35"/>
+  </g>
+  <g class="es-wing-l" style="transform-origin:100px 100px;">
+    <polygon points="100,100  30,55   18,82   55,95"  fill="url(#esWingGradL)" stroke="#dd1111" stroke-width="0.6" stroke-opacity="0.5"  filter="url(#esGlowOuter)"/>
+    <polygon points="100,100  20,80   14,110  50,110" fill="url(#esWingGradL)" stroke="#dd1111" stroke-width="0.6" stroke-opacity="0.4" fill-opacity="0.7" filter="url(#esGlowOuter)"/>
+    <polygon points="100,100  30,110  22,138  60,125" fill="url(#esWingGradL)" stroke="#ff6600" stroke-width="0.5" stroke-opacity="0.3" fill-opacity="0.5"/>
+    <line x1="100" y1="100" x2="22"  y2="68"  stroke="#ff4400" stroke-width="0.7" stroke-opacity="0.4"/>
+    <line x1="100" y1="100" x2="16"  y2="96"  stroke="#dd1111" stroke-width="0.7" stroke-opacity="0.35"/>
+    <line x1="100" y1="100" x2="25"  y2="125" stroke="#ff4400" stroke-width="0.6" stroke-opacity="0.3"/>
+    <polyline points="30,55  16,95  22,138" fill="none" stroke="#dd1111" stroke-width="1" stroke-opacity="0.3" filter="url(#esGlowSoft)"/>
+  </g>
+  <g class="es-wing-r" style="transform-origin:100px 100px;">
+    <polygon points="100,100  170,55  182,82  145,95"  fill="url(#esWingGradR)" stroke="#dd1111" stroke-width="0.6" stroke-opacity="0.5"  filter="url(#esGlowOuter)"/>
+    <polygon points="100,100  180,80  186,110  150,110" fill="url(#esWingGradR)" stroke="#dd1111" stroke-width="0.6" stroke-opacity="0.4" fill-opacity="0.7" filter="url(#esGlowOuter)"/>
+    <polygon points="100,100  170,110  178,138  140,125" fill="url(#esWingGradR)" stroke="#ff6600" stroke-width="0.5" stroke-opacity="0.3" fill-opacity="0.5"/>
+    <line x1="100" y1="100" x2="178" y2="68"  stroke="#ff4400" stroke-width="0.7" stroke-opacity="0.4"/>
+    <line x1="100" y1="100" x2="184" y2="96"  stroke="#dd1111" stroke-width="0.7" stroke-opacity="0.35"/>
+    <line x1="100" y1="100" x2="175" y2="125" stroke="#ff4400" stroke-width="0.6" stroke-opacity="0.3"/>
+    <polyline points="170,55  184,95  178,138" fill="none" stroke="#dd1111" stroke-width="1" stroke-opacity="0.3" filter="url(#esGlowSoft)"/>
+  </g>
+  <g class="es-core-group" style="transform-origin:100px 100px;">
+    <polygon points="100,52  141,76  141,124  100,148  59,124  59,76" fill="none" stroke="#dd1111" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="6 4"/>
+    <circle cx="100" cy="100" r="46" fill="url(#esCoreFill)"/>
+    <polygon points="100,60  132,112  68,112"  fill="rgba(221,17,17,0.08)" stroke="#dd1111" stroke-width="2.2" stroke-linejoin="round" filter="url(#esGlowCore)"/>
+    <polygon points="100,72  124,108  76,108"  fill="rgba(255,102,0,0.06)"  stroke="#ff6600" stroke-width="1.8" stroke-linejoin="round" filter="url(#esGlowCore)"/>
+    <polygon points="100,83  115,105  85,105"  fill="rgba(0,212,255,0.04)"  stroke="#00d4ff" stroke-width="1.4" stroke-linejoin="round" filter="url(#esGlowCyan)"/>
+    <polygon points="100,92  105,100  100,108  95,100" fill="#ff4400" fill-opacity="0.9" filter="url(#esGlowCore)"/>
+    <circle cx="100" cy="100" r="2.5" fill="#ffffff" fill-opacity="0.85" filter="url(#esGlowCore)"/>
+    <line x1="100" y1="54"  x2="100" y2="60"  stroke="#dd1111" stroke-width="1" stroke-opacity="0.6"/>
+    <line x1="100" y1="140" x2="100" y2="146" stroke="#dd1111" stroke-width="1" stroke-opacity="0.6"/>
+    <line x1="55"  y1="100" x2="61"  y2="100" stroke="#dd1111" stroke-width="1" stroke-opacity="0.6"/>
+    <line x1="139" y1="100" x2="145" y2="100" stroke="#dd1111" stroke-width="1" stroke-opacity="0.6"/>
+  </g>
+  <g class="es-fracture">
+    <polygon points="72,62  62,54  66,68"   fill="#dd1111" fill-opacity="0.6" stroke="#dd1111" stroke-width="0.5" filter="url(#esGlowSoft)"/>
+    <polygon points="80,58  70,50  73,61"   fill="#ff6600" fill-opacity="0.5" stroke="#ff6600" stroke-width="0.4"/>
+    <line x1="62" y1="54" x2="56" y2="48"  stroke="#dd1111" stroke-width="0.8" stroke-opacity="0.8"/>
+    <line x1="70" y1="50" x2="65" y2="43"  stroke="#ff6600" stroke-width="0.6" stroke-opacity="0.7"/>
+    <polygon points="128,62  138,54  134,68" fill="#dd1111" fill-opacity="0.6" stroke="#dd1111" stroke-width="0.5" filter="url(#esGlowSoft)"/>
+    <polygon points="120,58  130,50  127,61" fill="#ff6600" fill-opacity="0.5" stroke="#ff6600" stroke-width="0.4"/>
+    <line x1="138" y1="54" x2="144" y2="48" stroke="#dd1111" stroke-width="0.8" stroke-opacity="0.8"/>
+    <line x1="130" y1="50" x2="135" y2="43" stroke="#ff6600" stroke-width="0.6" stroke-opacity="0.7"/>
+    <polygon points="90,145  82,155  94,152"  fill="#dd1111" fill-opacity="0.5" stroke="#dd1111" stroke-width="0.5" filter="url(#esGlowSoft)"/>
+    <polygon points="110,145 118,155 106,152" fill="#dd1111" fill-opacity="0.5" stroke="#dd1111" stroke-width="0.5" filter="url(#esGlowSoft)"/>
+    <line x1="88"  y1="150" x2="84"  y2="160" stroke="#ff4400" stroke-width="0.8" stroke-opacity="0.7"/>
+    <line x1="112" y1="150" x2="116" y2="160" stroke="#ff4400" stroke-width="0.8" stroke-opacity="0.7"/>
+    <circle cx="48"  cy="90"  r="1.2" fill="#dd1111" fill-opacity="0.7"/>
+    <circle cx="152" cy="75"  r="1.0" fill="#ff6600" fill-opacity="0.6"/>
+    <circle cx="55"  cy="130" r="0.8" fill="#00d4ff" fill-opacity="0.8"/>
+    <circle cx="148" cy="130" r="1.2" fill="#dd1111" fill-opacity="0.6"/>
+    <circle cx="100" cy="32"  r="1.0" fill="#ff4400" fill-opacity="0.7"/>
+    <circle cx="100" cy="168" r="1.2" fill="#dd1111" fill-opacity="0.6"/>
+    <line x1="100" y1="83"  x2="88"  y2="62"  stroke="#dd1111" stroke-width="0.7" stroke-opacity="0.65"/>
+    <line x1="100" y1="83"  x2="112" y2="62"  stroke="#dd1111" stroke-width="0.7" stroke-opacity="0.65"/>
+    <line x1="68"  y1="112" x2="52"  y2="118" stroke="#ff4400" stroke-width="0.6" stroke-opacity="0.55"/>
+    <line x1="132" y1="112" x2="148" y2="118" stroke="#ff4400" stroke-width="0.6" stroke-opacity="0.55"/>
+  </g>
+  <g class="es-glitch-layer">
+    <polygon points="102,60  134,112  70,112" fill="none" stroke="#00d4ff" stroke-width="0.9" stroke-opacity="0.55" transform="translate(2, -1)" filter="url(#esGlowCyan)"/>
+    <polygon points="98,60  130,112  66,112"  fill="none" stroke="#ff3333" stroke-width="0.9" stroke-opacity="0.45" transform="translate(-2, 1)"/>
+  </g>
+  <g class="es-scanline" clip-path="url(#esScanClip)">
+    <rect x="59" y="91"  width="82" height="1.5" fill="#dd1111" fill-opacity="0.3"/>
+    <rect x="59" y="99"  width="82" height="1.0" fill="#00d4ff" fill-opacity="0.25"/>
+    <rect x="59" y="106" width="82" height="1.5" fill="#ff6600" fill-opacity="0.2"/>
+    <rect x="82" y="62"  width="36" height="2"   fill="#dd1111" fill-opacity="0.4"/>
+    <rect x="74" y="138" width="52" height="1.5" fill="#ff4400" fill-opacity="0.35"/>
+  </g>
+</svg>

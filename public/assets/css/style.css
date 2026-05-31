@@ -275,9 +275,7 @@ img {
 body {
   margin: 0;
   overflow-x: hidden;
-  background:
-
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font-ui);
   line-height: 1.65;
@@ -303,6 +301,7 @@ a:hover { color: var(--accent-orange-bright); }
   mask-image: radial-gradient(circle at center, black 50%, transparent 90%);
   pointer-events: none;
   /* GPU: static background — own layer, never repainted */
+  will-change: transform;
   transform: translateZ(0);
   contain: strict;
 }
@@ -337,6 +336,7 @@ a:hover { color: var(--accent-orange-bright); }
   right: -250px; 
   z-index: -1; 
   pointer-events: none; 
+  will-change: transform;
   transform: translateZ(0); 
   contain: strict; /* Upgraded from layout style to strict since dimensions are static */
 }
@@ -383,6 +383,8 @@ nav {
   background: rgba(6, 8, 11, 0.90); /* Bumping opacity saves fill-rate calculations */
   backdrop-filter: blur(10px);       /* 10px is significantly cheaper to process than 20px */
   -webkit-backdrop-filter: blur(10px);
+  backface-visibility: hidden;       /* FF: prevents backdrop-filter from forking a new intermediate surface */
+  -webkit-backface-visibility: hidden;
   transition: background 300ms ease, transform 300ms ease;
   transform: translateZ(0);          /* Ensure hardware layer context remains absolute */
   will-change: transform;
@@ -486,18 +488,19 @@ nav.nav-hidden {
   content: ""; 
   position: absolute; 
   left: 50%; 
-  transform: translateX(-50%);
+  transform: translateX(-50%) scaleX(0);
+  transform-origin: center;
   bottom: -6px; 
-  width: 0; 
+  width: 16px;   /* always full width; visibility driven by scaleX */
   height: 3px; 
   border-radius: 99px;
   background: var(--primary); 
-  transition: width var(--transition);
+  transition: transform var(--transition); /* scaleX is GPU-compositable — no layout recalc */
 }
 .nav-links a:hover { color: var(--heading); }
-.nav-links a:hover::after { width: 16px; }
+.nav-links a:hover::after { transform: translateX(-50%) scaleX(1); }
 .nav-links a.active { color: var(--heading); }
-.nav-links a.active::after { width: 16px; }
+.nav-links a.active::after { transform: translateX(-50%) scaleX(1); }
 
 /* ── Hamburger Navigation (REPAIRED) ─────────────────────────────── */
 .hamburger-btn {
@@ -1039,6 +1042,8 @@ footer { padding: 80px 0 60px; border-top: 1px solid var(--border); background: 
   padding: 18px;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  backface-visibility: hidden;       /* FF: keeps backdrop-filter on its own compositor layer */
+  -webkit-backface-visibility: hidden;
   overflow: hidden;
   box-shadow: 0 8px 32px var(--shadow);
   transition: border-color var(--transition), box-shadow var(--transition);
@@ -1392,3 +1397,417 @@ h2, h3, .section-title {
   color: #b0b8c8;
   line-height: 1.7;
 }
+
+/* ============================================================
+   ORP v3.1 — Logo-mark Animation Patch
+   style.css supplement — add after existing style.css rules
+
+   DROP-IN: Append to style.css (or load as a separate
+   <link rel="stylesheet"> AFTER style.css and entropia-sigil.css).
+
+   SCOPE: All rules are scoped to .logo-mark and its children
+   so they cannot bleed into the full-size .entropia-sigil sigil.
+
+   ARCHITECTURE:
+     • CSS custom properties on .logo-mark mirror the entropia-sigil
+       vocabulary so the same animation keyframes work for both.
+       --lm-drift-intensity : 0.0–1.0 (set by _logoSHSBridge JS)
+       --lm-fracture-opacity: derived from drift (fracture shards)
+       --lm-shs-glow        : current SHS glow colour (set by JS)
+       --lm-glow-core       : inner glow radius (derived)
+       --lm-glow-outer      : outer glow radius (derived)
+
+     • SHS state classes apply pre-computed CSS variable sets:
+         .shs-green  .shs-yellow  .shs-orange  .shs-red  .shs-black
+
+     • Interaction classes applied by main.js LOGO-2 patch:
+         .logo-mark--active   — hover state
+         .logo-mark--pulse    — enter burst
+         .logo-mark--clicked  — one-shot activation
+
+   ANIMATION VOCABULARY (matching entropia-sigil.css):
+     .orp-orbit-ring      — logoOrbit  5s linear infinite
+     .orp-wing-l          — logoWingL  4s ease-in-out infinite alternate
+     .orp-wing-r          — logoWingR  4s ease-in-out infinite alternate-reverse
+     .orp-core-group      — logoBreathe 3.5s ease-in-out infinite
+     .orp-glitch-layer    — logoJitter  0.12s steps(1) infinite
+     .orp-fracture        — opacity driven by --lm-fracture-opacity
+     .orp-scanline        — opacity driven by --lm-drift-intensity
+
+   PERF NOTES (same constraints as entropia-sigil.css):
+     • All animation durations are FIXED (no calc() on duration).
+       Firefox rebuilds the animation timeline on every frame if
+       duration references a CSS custom property that changes at
+       runtime. Fixed durations eliminate that rebuild entirely.
+     • Drift coupling is achieved via keyframe magnitude calc()s
+       on transform values — these are GPU-compositable and do NOT
+       trigger timeline rebuilds.
+     • will-change: transform is set on animated sub-groups.
+       Not set on .logo-mark itself to avoid promoting the nav's
+       entire stacking context — the nav already has will-change:transform.
+     • contain: layout style on each animated group isolates
+       relayout to that subtree.
+   ============================================================ */
+
+
+/* ── CSS Custom Properties on the container ──────────────────
+   JS sets --lm-drift-intensity via the SHS bridge.
+   All other derived values are computed here from it.
+   ────────────────────────────────────────────────────────── */
+.logo-mark {
+  /* PRIMARY TELEMETRY VARIABLE — written by _logoSHSBridge() */
+  --lm-drift-intensity:   0;
+
+  /* Derived glow radii (scale with drift) */
+  --lm-glow-core:         calc(2px  + var(--lm-drift-intensity) * 8px);
+  --lm-glow-outer:        calc(4px  + var(--lm-drift-intensity) * 14px);
+
+  /* Fracture shards: invisible at drift=0, fully opaque at drift=1 */
+  --lm-fracture-opacity:  calc(var(--lm-drift-intensity) * 0.9);
+
+  /* SHS glow colour (overridden by shs-* classes below) */
+  --lm-shs-glow:          rgba(63, 185, 80, 0.25); /* GREEN default */
+
+  /* GPU: compositing layer for the mark.
+     NOTE: not adding will-change here — the .logo container
+     (nav element) already lives on a composited layer via
+     nav { will-change: transform }. Adding another will-change
+     here would fork a new compositor surface unnecessarily.
+     The inner animated groups each carry their own will-change. */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+
+  /* Drop shadow driven by SHS glow variable */
+  filter: drop-shadow(0 0 var(--lm-glow-core) var(--lm-shs-glow));
+  transition: filter 300ms ease;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* The injected SVG fills its container */
+.logo-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* All SVG children: never intercept pointer events */
+.logo-mark *,
+.logo-mark svg * {
+  pointer-events: none !important;
+}
+
+
+/* ── SHS STATE CLASSES ────────────────────────────────────────
+   Applied by _logoSHSBridge() in main.js.
+   Each class sets --lm-shs-glow and --lm-drift-intensity
+   to match the current system health state.
+   Matches the SHS_DRIFT_MAP in entropia-sigil.js exactly.
+   ────────────────────────────────────────────────────────── */
+
+/* GREEN — stable, idle */
+.logo-mark.shs-green {
+  --lm-shs-glow:        rgba(63, 185, 80, 0.25);
+  --lm-drift-intensity: 0;
+}
+
+/* YELLOW — restless, mild drift */
+.logo-mark.shs-yellow {
+  --lm-shs-glow:        rgba(255, 200, 50, 0.28);
+  --lm-drift-intensity: 0.25;
+}
+
+/* ORANGE — agitated, moderate drift */
+.logo-mark.shs-orange {
+  --lm-shs-glow:        rgba(255, 102, 0, 0.30);
+  --lm-drift-intensity: 0.55;
+}
+
+/* RED — critical, high drift */
+.logo-mark.shs-red {
+  --lm-shs-glow:        rgba(221, 17, 17, 0.38);
+  --lm-drift-intensity: 0.78;
+}
+
+/* BLACK / DEAD — maximum fracture */
+.logo-mark.shs-black {
+  --lm-shs-glow:        rgba(100, 0, 0, 0.45);
+  --lm-drift-intensity: 1.0;
+}
+
+
+/* ── HOVER STATE: .logo-mark--active ─────────────────────────
+   Applied on hover of parent .logo by main.js LOGO-2 patch.
+   Boosts glow, accelerates orbit, intensifies breath.
+   Mirrors the .entropia-sigil:hover overrides in entropia-sigil.css
+   ────────────────────────────────────────────────────────── */
+.logo-mark--active {
+  filter:
+    drop-shadow(0 0 calc(var(--lm-glow-core) * 1.8) var(--lm-shs-glow))
+    drop-shadow(0 0 calc(var(--lm-glow-outer) * 0.5) rgba(221, 17, 17, 0.28));
+  /* transition inherited from .logo-mark */
+}
+
+.logo-mark--active .orp-core-group {
+  animation: logoBreatheHover 1.8s ease-in-out infinite;
+}
+
+.logo-mark--active .orp-orbit-ring {
+  /* Accelerate orbit on hover — fixed 1.8s (PERF: not calc()) */
+  animation-duration: 1.8s;
+}
+
+.logo-mark--active .orp-wing-l,
+.logo-mark--active .orp-wing-r {
+  /* Push wing shimmer to brighter end on hover */
+  opacity: 0.9;
+}
+
+
+/* ── ENTER BURST: .logo-mark--pulse ──────────────────────────
+   Brief glow burst on mouseenter. Self-removing class (see main.js).
+   Single animation on the container; no child targeting.
+   ────────────────────────────────────────────────────────── */
+.logo-mark--pulse {
+  animation: logoMarkPulse 0.4s ease-out forwards;
+}
+
+@keyframes logoMarkPulse {
+  0%   { filter: drop-shadow(0 0 2px  var(--lm-shs-glow)); }
+  35%  { filter: drop-shadow(0 0 12px var(--lm-shs-glow))
+                 drop-shadow(0 0 6px  rgba(221, 17, 17, 0.5)); }
+  100% { filter: drop-shadow(0 0 var(--lm-glow-core) var(--lm-shs-glow)); }
+}
+
+
+/* ── ONE-SHOT ACTIVATION: .logo-mark--clicked ────────────────
+   Applied on click. Fires a hard flash-through + brief jitter,
+   then animationend removes the class (see main.js LOGO-2).
+   ────────────────────────────────────────────────────────── */
+.logo-mark--clicked {
+  animation: logoMarkClick 0.65s cubic-bezier(0.2, 0, 0.1, 1) forwards;
+}
+
+@keyframes logoMarkClick {
+  0%   { filter: drop-shadow(0 0 2px  var(--lm-shs-glow));
+         transform: translateZ(0) scale(1); }
+  12%  { filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.55))
+                 drop-shadow(0 0 10px var(--lm-shs-glow));
+         transform: translateZ(0) scale(1.18); }
+  30%  { filter: drop-shadow(0 0 14px var(--lm-shs-glow))
+                 drop-shadow(0 0 5px  rgba(221, 17, 17, 0.6));
+         transform: translateZ(0) scale(0.94); }
+  55%  { filter: drop-shadow(0 0 8px  var(--lm-shs-glow));
+         transform: translateZ(0) scale(1.04); }
+  100% { filter: drop-shadow(0 0 var(--lm-glow-core) var(--lm-shs-glow));
+         transform: translateZ(0) scale(1); }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATED PART RULES
+   All selectors scoped to .logo-mark to prevent leaking to
+   .entropia-sigil (which uses .es-* class names, not .orp-*).
+   ═══════════════════════════════════════════════════════════════ */
+
+
+/* ── Orbit ring rotation ──────────────────────────────────────
+   Fixed 5s duration — no calc() on duration (Firefox perf, PERF-2).
+   Accelerated to 1.8s on hover via .logo-mark--active above.
+   ────────────────────────────────────────────────────────── */
+.logo-mark .orp-orbit-ring {
+  transform-origin: center;
+  transform-box:    fill-box;
+  animation:        logoOrbit 5s linear infinite;
+  will-change:      transform;
+  contain:          layout style;
+}
+
+@keyframes logoOrbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+
+/* ── Wing shimmer — left ──────────────────────────────────────
+   Fixed 4s duration (PERF-1). Alternates in opposite phase to
+   the right wing for the bilateral shimmer effect.
+   ────────────────────────────────────────────────────────── */
+.logo-mark .orp-wing-l {
+  transform-origin: center;
+  transform-box:    fill-box;
+  animation:        logoWingShimmer 4s ease-in-out infinite alternate;
+  will-change:      opacity, transform;
+  contain:          layout style;
+}
+
+/* ── Wing shimmer — right ────────────────────────────────────
+   Identical timing, reversed direction.
+   ────────────────────────────────────────────────────────── */
+.logo-mark .orp-wing-r {
+  transform-origin: center;
+  transform-box:    fill-box;
+  animation:        logoWingShimmer 4s ease-in-out infinite alternate-reverse;
+  will-change:      opacity, transform;
+  contain:          layout style;
+}
+
+@keyframes logoWingShimmer {
+  from { opacity: 0.45; transform: scaleY(1); }
+  to   { opacity: 0.80; transform: scaleY(1.04); }
+}
+
+.orb-pulse, .scanline {
+  will-change: transform, opacity;
+}
+/* ── Core group: breathe + micro-rotate ──────────────────────
+   Fixed 3.5s (PERF-1). Hover override applied in --active block.
+   ────────────────────────────────────────────────────────── */
+.logo-mark .orp-core-group {
+  transform-origin: center;
+  transform-box:    fill-box;
+  animation:        logoBreathe 3.5s ease-in-out infinite;
+  will-change:      transform;
+  contain:          layout style;
+}
+
+@keyframes logoBreathe {
+  0%   { transform: scale(1)     rotate(0deg); }
+  30%  { transform: scale(1.015) rotate(0.5deg); }
+  65%  { transform: scale(0.990) rotate(-0.4deg); }
+  100% { transform: scale(1)     rotate(0deg); }
+}
+
+@keyframes logoBreatheHover {
+  0%   { transform: scale(1.02)  rotate(0deg); }
+  40%  { transform: scale(1.055) rotate(1.4deg); }
+  70%  { transform: scale(1.01)  rotate(-1.0deg); }
+  100% { transform: scale(1.02)  rotate(0deg); }
+}
+
+
+/* ── Glitch / jitter displacement ────────────────────────────
+   PERF-3 pattern: fixed 0.12s duration, drift coupling lives
+   inside keyframe transform calc()s — same technique as
+   entropia-sigil.css to avoid Firefox timeline rebuilds.
+   Opacity: zero at drift=0, ramps up with drift.
+   ────────────────────────────────────────────────────────── */
+.logo-mark .orp-glitch-layer {
+  transform-box: fill-box;
+  animation:     logoJitter 0.12s steps(1) infinite;
+  opacity:       calc(var(--lm-drift-intensity) * 0.80);
+  will-change:   transform, opacity;
+  contain:       layout style;
+}
+
+@keyframes logoJitter {
+  0%   { transform: translate(0, 0)  skewX(0deg); }
+  15%  { transform: translate(
+           calc(-2px * var(--lm-drift-intensity)),
+           calc( 2px * var(--lm-drift-intensity)))
+           skewX(calc(-0.7deg * var(--lm-drift-intensity))); }
+  30%  { transform: translate(
+           calc( 2px * var(--lm-drift-intensity)),
+           calc(-2px * var(--lm-drift-intensity)))
+           skewX(calc( 0.5deg * var(--lm-drift-intensity))); }
+  45%  { transform: translate(0,
+           calc(1px * var(--lm-drift-intensity)))
+           skewX(0deg); }
+  60%  { transform: translate(
+           calc(-1.5px * var(--lm-drift-intensity)), 0)
+           skewX(calc(0.6deg * var(--lm-drift-intensity))); }
+  80%  { transform: translate(
+           calc( 2px * var(--lm-drift-intensity)), 0)
+           skewX(0deg); }
+  100% { transform: translate(0, 0)  skewX(0deg); }
+}
+
+
+/* ── Fracture shards — drift-gated ───────────────────────────
+   Invisible at drift=0, opaque at drift=1 (same as .es-fracture).
+   Transition smooths the appear/disappear.
+   ────────────────────────────────────────────────────────── */
+.logo-mark .orp-fracture {
+  opacity:    var(--lm-fracture-opacity);
+  transition: opacity 400ms ease;
+}
+
+
+/* ── Scanlines — mix-blend-mode screen ───────────────────────
+   Becomes visible above drift ~0.4 (same threshold as
+   .es-scanline in entropia-sigil.css).
+   mix-blend-mode cost is bounded by the isolation:isolate on
+   .logo-mark — blend stacking context is isolated to the mark.
+   ────────────────────────────────────────────────────────── */
+.logo-mark .orp-scanline {
+  opacity:        calc((var(--lm-drift-intensity) - 0.4) * 1.5);
+  transition:     opacity 300ms ease;
+  mix-blend-mode: screen;
+  contain:        layout style;
+}
+
+
+/* ── Reduced-motion override ─────────────────────────────────
+   Respects user OS preference. Kills all logo animations;
+   preserves static visual (glow still shows current SHS state).
+   ────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .logo-mark .orp-orbit-ring,
+  .logo-mark .orp-core-group,
+  .logo-mark .orp-wing-l,
+  .logo-mark .orp-wing-r,
+  .logo-mark .orp-glitch-layer,
+  .logo-mark--pulse,
+  .logo-mark--clicked {
+    animation:   none;
+    will-change: auto;
+    transition:  none;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTEXT SIZES
+   .logo-mark in the nav is already 18×18 from base style.css.
+   These classes allow larger logo-marks elsewhere (hero, splash).
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Nav default — preserve existing 18×18 */
+nav .logo-mark {
+  width:  18px;
+  height: 18px;
+}
+
+/* Medium standalone logo */
+.logo-mark--md {
+  width:  36px;
+  height: 36px;
+}
+
+/* Large hero placement */
+.logo-mark--lg {
+  width:  56px;
+  height: 56px;
+}
+
+/* XL splash / about page */
+.logo-mark--xl {
+  width:  80px;
+  height: 80px;
+}
+
+.logo-mark,
+.logo-mark::before,
+.logo-mark::after,
+.logo-mark span {
+  opacity: 1 !important;
+  visibility: visible !important;
+  border-color: var(--primary) !important;
+}
+

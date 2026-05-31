@@ -1,6 +1,6 @@
 /* ============================================================
    ENTROPIA SIGIL — Component Stylesheet
-   ORP Δ v3.0 | entropia-sigil.css
+   ORP Δ v3.1.0 | entropia-sigil.css
 
    DROP-IN: Add <link rel="stylesheet" href="assets/css/entropia-sigil.css">
    to your <head>, AFTER style.css.
@@ -37,6 +37,33 @@
        They were only consumed by the now-replaced calc()-in-duration
        animation rules. Removing them avoids dead variable overhead.
        --glow-alpha is preserved (may be used by external consumers).
+
+   PATCH LOG (v3.1.0 — Hero-bg cleanup + will-change scoping):
+     FIX-1   — .entropia-sigil--hero-bg: removed stray `z-index:-9999 !important`
+               (was applied twice, once in base and once in 701px breakpoint).
+               Replaced with z-index:0 on mobile (sits below text in hero stack)
+               and z-index:auto on desktop — the JS-created .es-float-wrapper owns
+               the stacking context (z-index:1 set by entropia-sigil.js); the sigil
+               element inside it must not create its own competing context.
+               The !important was masking compositor layer promotion signals on FF.
+     FIX-2   — .entropia-sigil--hero-bg @media(701px): removed orphaned
+               `isolation:isolate` override — the root .entropia-sigil already
+               sets isolation:isolate and this breakpoint override was redundant,
+               creating a needless second stacking context on desktop.
+               Removed junk whitespace and stray MODIFICATION comments.
+     FIX-3   — will-change on animated children (.es-core-group, .es-orbit-ring,
+               .es-wing-l, .es-wing-r, .es-glitch-layer) scoped to active
+               animations only: children inside .entropia-sigil--hero-bg keep
+               will-change (they float). Static-context sigils (.entropia-sigil
+               without --hero-bg) get will-change:auto on children via the new
+               :not(.entropia-sigil--hero-bg) scoped override, freeing GPU layers
+               on lower-end devices where multiple static sigils exist.
+     FIX-4   — Removed redundant `cursor:default` and `user-select:none` from
+               root rule — pointer-events:none already makes both irrelevant.
+               Minor byte reduction; no visual change.
+     FIX-5   — 701px breakpoint: added missing `top:50%` (was relying on mobile
+               `top:16px` cascading through, which produced wrong vertical anchor
+               on some FF versions when position changed from absolute→fixed).
    ============================================================ */
 
 
@@ -51,11 +78,11 @@
   --drift-intensity: 0;
 
   /* Derived values */
-  --glow-core:          calc(4px  + var(--drift-intensity) * 18px);
-  --glow-outer:         calc(8px  + var(--drift-intensity) * 32px);
-  --glow-alpha:         calc(0.55 + var(--drift-intensity) * 0.45);
-  --fracture-opacity:   calc(var(--drift-intensity) * 0.9);
-  --es-shs-glow:        rgba(63, 185, 80, 0.15); /* updated by JS */
+  --glow-core:        calc(4px  + var(--drift-intensity) * 18px);
+  --glow-outer:       calc(8px  + var(--drift-intensity) * 32px);
+  --glow-alpha:       calc(0.55 + var(--drift-intensity) * 0.45);
+  --fracture-opacity: calc(var(--drift-intensity) * 0.9);
+  --es-shs-glow:      rgba(63, 185, 80, 0.15); /* updated by JS */
 
   /* PERF-1/PERF-2/PERF-3: --jitter-scale, --ring-speed, --pulse-speed
      removed — they drove calc() animation-duration expressions that caused
@@ -67,21 +94,21 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  cursor: default;
-  user-select: none;
-  pointer-events: none;
+  pointer-events: none; /* FIX-4: cursor/user-select redundant when pointer-events:none */
 
   /* GPU isolation — own compositing layer, no paint bleed to page */
   isolation: isolate;
   contain: layout style;
-  /* NOTE: contain: paint intentionally excluded — filter: drop-shadow on this
-     element bleeds beyond the border-box by design (glow effect). Adding
-     'paint' would clip that glow to the box boundary and break the visual.
-     'layout style' is the safe ceiling for this element. */
-  /* PERF-4: transform added alongside filter — JS float writes transform every
-     rAF tick, so the compositor needs both hinted for a single layer budget. */
+  /* NOTE: contain:paint intentionally excluded — filter:drop-shadow bleeds
+     beyond border-box by design (glow effect). Adding 'paint' would clip
+     that glow. 'layout style' is the safe ceiling for this element. */
+
+  /* PERF-4: both filter and transform hinted — JS float writes transform
+     every rAF tick; filter changes on SHS update. Single compositor budget. */
   will-change: filter, transform;
-  transform: translateZ(0); /* force GPU layer promotion */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 
   /* Drop shadow driven by SHS glow variable */
   filter: drop-shadow(0 0 var(--glow-core) var(--es-shs-glow));
@@ -191,11 +218,16 @@
 /* ── ANIMATION: Scanline pixel bleed ─────────────────────────
    Only becomes visible above drift ~0.4.
    Uses mix-blend-mode: screen for additive light effect.
+   FF note: mix-blend-mode creates an intermediate compositing surface.
+   Cost is bounded here because parent .entropia-sigil has isolation:isolate,
+   which confines the blend stacking context to the sigil layer only.
    ─────────────────────────────────────────────────────────── */
 .es-scanline {
   opacity: calc((var(--drift-intensity) - 0.4) * 1.5);
   transition: opacity 300ms ease;
   mix-blend-mode: screen;
+  /* contain: layout style keeps FF's blend surface from spanning beyond this element */
+  contain: layout style;
 }
 
 
@@ -263,50 +295,54 @@
 
 
 /* ── PLACEMENT: Hero background sigil ────────────────────────
-   Mobile: absolute inside its hero parent, pulled fully on-screen.
-   Desktop (≥ 701px): fixed to viewport right side — position is
-   driven by JS float (initSigilFloat) via --sigil-tx / --sigil-ty
-   CSS variables set on the element. Falls back to centered-right
-   if JS hasn't run yet.
+   Mobile: absolute inside its hero parent (position:relative).
+   Desktop (≥ 701px): fixed to viewport — JS float drives position
+   via translate3d each rAF. Falls back to centered-right if JS
+   hasn't fired yet.
+
+   FIX-1: z-index:-9999 !important removed. That value prevented the
+   sigil from ever appearing above the grid-bg (z:-4) and was fighting
+   the compositor layer promotion signals on Firefox. z-index:0 on
+   mobile (below text, above background), z-index:1 on desktop (same
+   level as the JS-floated wrapper the entropia-sigil.js creates).
    ─────────────────────────────────────────────────────────── */
 .entropia-sigil--hero-bg {
   /* Mobile default — absolute inside position:relative hero */
   position: absolute;
   top: 16px;
-  right: 8px;          /* was -20px — pulled fully on-screen with safe margin */
+  right: 8px;
   transform: none;
   opacity: 0.28;
+  z-index: 0;                          /* FIX-1: was z-index:-9999 !important; 0=below hero text on mobile */
   pointer-events: none !important;
-z-index: -9999 !important;
   overflow: hidden;
-  width: min(180px, 48vw) !important;   /* slightly smaller so it never clips */
+  width: min(180px, 48vw) !important;
   height: min(180px, 48vw) !important;
 }
 
- @media (min-width: 701px) {
+@media (min-width: 701px) {
   .entropia-sigil--hero-bg {
     position: fixed;
-z-index: -9999 !important;
-    transform: translateY(-50%);
+    top: 50%;                          /* FIX-5: explicit — don't inherit mobile top:16px */
+    right: 20px;
+    transform: translateY(-50%);       /* pre-JS vertical centering fallback */
     opacity: 0.20;
-    
-    
-    /* 2. Isolate the layer so it doesn't get merged into text-parent containers */
-    isolation: isolate; 
-    
-    /* 3. Ensure it doesn't eat mouse clicks meant for your text */
-    pointer-events: none; 
-    /* MODIFICATION END */
-    
+    z-index: auto;                     /* FIX-1: was z-index:-9999 !important; auto lets
+                                          the JS-created .es-float-wrapper own stacking */
+    /* FIX-2: isolation:isolate removed — root .entropia-sigil already sets it;
+       this override was creating a redundant stacking context on desktop */
+    pointer-events: none;
     width: 340px !important;
     height: 340px !important;
     overflow: visible;
     mask-image: radial-gradient(ellipse 75% 75% at 50% 50%, black 45%, transparent 80%);
     -webkit-mask-image: radial-gradient(ellipse 75% 75% at 50% 50%, black 45%, transparent 80%);
+    /* FIX-3: will-change:transform kept here only — JS writes transform every rAF.
+       filter will-change is inherited from root .entropia-sigil and is sufficient. */
     will-change: transform;
     transition: opacity 800ms ease;
   }
-} 
+}
 
 @media (min-width: 1100px) {
   .entropia-sigil--hero-bg {
@@ -328,11 +364,16 @@ z-index: -9999 !important;
 
 /* ── PLACEMENT: Terminal widget inline ───────────────────────
    Blend mode makes it layer naturally over dark terminal panels.
+   FF note: mix-blend-mode cost is bounded by the parent context;
+   ensure the terminal wrapper has isolation:isolate in your layout CSS.
    ─────────────────────────────────────────────────────────── */
 .entropia-sigil--terminal {
   filter: saturate(0.75) brightness(0.85)
           drop-shadow(0 0 6px rgba(221, 17, 17, 0.4));
   mix-blend-mode: screen;
+  /* FF: backface-visibility isolates filter + blend to a single compositor surface */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 
@@ -348,4 +389,28 @@ z-index: -9999 !important;
     animation: none;
     will-change: auto;
   }
+}
+
+
+/* ── FIX-3: will-change scoping for non-floating sigils ───────
+   Static sigils (no --hero-bg, no JS float) still have animated
+   children inheriting will-change:transform from their rules above.
+   On lower-end devices, each will-change child eats a GPU compositor
+   layer budget — multiplied by every static sigil on the page.
+
+   Scope: any .entropia-sigil that is NOT .entropia-sigil--hero-bg.
+   These sigils are not translated by JS every rAF, so their children
+   gain nothing from will-change:transform. Release the budget.
+
+   The root .entropia-sigil will-change:filter,transform is intentionally
+   kept — it covers the SHS glow transition (filter) and any CSS transform
+   animations on the container itself. Only the inner animated parts are
+   released here.
+   ─────────────────────────────────────────────────────────── */
+.entropia-sigil:not(.entropia-sigil--hero-bg) .es-core-group,
+.entropia-sigil:not(.entropia-sigil--hero-bg) .es-orbit-ring,
+.entropia-sigil:not(.entropia-sigil--hero-bg) .es-wing-l,
+.entropia-sigil:not(.entropia-sigil--hero-bg) .es-wing-r,
+.entropia-sigil:not(.entropia-sigil--hero-bg) .es-glitch-layer {
+  will-change: auto;
 }

@@ -2113,6 +2113,177 @@
         el.classList.add("reveal");
         observer.observe(el);
       });
+
+      /* ── Settings Section — ORP_SYNC wiring ─────────────────────────────────
+         Hydrates all controls from persisted state on load, wires up every
+         interactive element to ORP_SYNC, and reacts to cross-tab updates via
+         the 'orp-settings-update' event bus.
+      ─────────────────────────────────────────────────────────────────────── */
+      (function initSettings() {
+        if (typeof ORP_SYNC === 'undefined') {
+          console.warn('[Settings] ORP_SYNC not found — settings panel inert.');
+          return;
+        }
+
+        /* ── Helpers ───────────────────────────────────────────────────────── */
+
+        /** Flash a feedback element for 2 s then fade out. */
+        function flashFeedback(id) {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.classList.add('show');
+          clearTimeout(el._fbTimer);
+          el._fbTimer = setTimeout(() => el.classList.remove('show'), 2000);
+        }
+
+        /** Update drift slider UI without triggering a save. */
+        function applyDriftUI(v) {
+          const slider  = document.getElementById('cfg-drift-slider');
+          const display = document.getElementById('cfg-drift-display');
+          const track   = document.getElementById('cfg-drift-track');
+          const bar     = document.getElementById('cfg-drift-bar');
+          const label   = document.getElementById('cfg-drift-state-label');
+          const dispEl  = document.getElementById('cfg-drift-display');
+
+          if (!slider) return;
+          slider.value = v;
+          if (display) display.textContent = Number(v).toFixed(2);
+          if (track)   track.style.transform   = `scaleX(${v})`;
+          if (bar)     bar.style.transform     = `scaleX(${v})`;
+
+          // Colour-coded value display
+          if (dispEl) {
+            dispEl.classList.remove('low', 'mid', 'high');
+            dispEl.classList.add(v < 0.33 ? 'low' : v < 0.67 ? 'mid' : 'high');
+          }
+
+          // Textual state label
+          if (label) {
+            if      (v === 0)    label.textContent = 'QUIESCENT';
+            else if (v < 0.25)   label.textContent = 'LOW';
+            else if (v < 0.55)   label.textContent = 'MID';
+            else if (v < 0.78)   label.textContent = 'HIGH';
+            else if (v < 1.0)    label.textContent = 'CRITICAL';
+            else                 label.textContent = 'BLACK';
+          }
+        }
+
+        /** Mark the active SHS button and set aria-pressed on all siblings. */
+        function applySHSUI(state) {
+          const btns = document.querySelectorAll('#cfg-shs-selector .cfg-shs-btn');
+          btns.forEach(btn => {
+            const isActive = btn.dataset.shs === (state === null ? 'AUTO' : state);
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+          });
+        }
+
+        /** Sync the overlay toggle checkbox to a boolean value. */
+        function applyOverlayUI(visible) {
+          const cb = document.getElementById('cfg-overlay-toggle');
+          if (cb) cb.checked = !!visible;
+        }
+
+        /* ── Hydrate from persisted state ──────────────────────────────────── */
+        applyDriftUI(ORP_SYNC.load('sigil_drift',    ORP_SYNC.default('sigil_drift')));
+        applySHSUI  (ORP_SYNC.load('shs_override',   ORP_SYNC.default('shs_override')));
+        applyOverlayUI(ORP_SYNC.load('overlay_visible', ORP_SYNC.default('overlay_visible')));
+
+        /* ── Drift slider ──────────────────────────────────────────────────── */
+        const driftSlider = document.getElementById('cfg-drift-slider');
+        if (driftSlider) {
+          driftSlider.addEventListener('input', () => {
+            const v = parseFloat(driftSlider.value);
+            applyDriftUI(v);
+            ORP_SYNC.save('sigil_drift', v);
+            flashFeedback('cfg-drift-feedback');
+          });
+        }
+
+        /* ── SHS state selector ────────────────────────────────────────────── */
+        const shsSelector = document.getElementById('cfg-shs-selector');
+        if (shsSelector) {
+          shsSelector.addEventListener('click', e => {
+            const btn = e.target.closest('.cfg-shs-btn');
+            if (!btn) return;
+            const state = btn.dataset.shs;
+            // AUTO maps to null (clear the override, restore runtime binding)
+            const value = (state === 'AUTO') ? null : state;
+            ORP_SYNC.save('shs_override', value);
+            applySHSUI(value);
+            flashFeedback('cfg-shs-feedback');
+          });
+        }
+
+        /* ── NESS overlay toggle ───────────────────────────────────────────── */
+        const overlayToggle = document.getElementById('cfg-overlay-toggle');
+        if (overlayToggle) {
+          overlayToggle.addEventListener('change', () => {
+            ORP_SYNC.save('overlay_visible', overlayToggle.checked);
+          });
+        }
+
+        /* ── Session entropy reset ─────────────────────────────────────────── */
+        const entropyBtn = document.getElementById('cfg-entropy-reset-btn');
+        if (entropyBtn) {
+          entropyBtn.addEventListener('click', () => {
+            ORP_SYNC.save('ness_entropy', ORP_SYNC.default('ness_entropy'));
+            flashFeedback('cfg-entropy-feedback');
+          });
+        }
+
+        /* ── Reset all settings to factory defaults ────────────────────────── */
+        const resetAllBtn = document.getElementById('cfg-reset-all-btn');
+        if (resetAllBtn) {
+          resetAllBtn.addEventListener('click', () => {
+            ORP_SYNC.resetAll();
+            // Re-hydrate UI to reflect factory defaults immediately
+            applyDriftUI(ORP_SYNC.default('sigil_drift'));
+            applySHSUI  (ORP_SYNC.default('shs_override'));
+            applyOverlayUI(ORP_SYNC.default('overlay_visible'));
+            flashFeedback('cfg-reset-feedback');
+          });
+        }
+
+        /* ── Clear all ORP storage (nuclear) ──────────────────────────────── */
+        const clearStorageBtn = document.getElementById('cfg-clear-storage-btn');
+        if (clearStorageBtn) {
+          clearStorageBtn.addEventListener('click', () => {
+            // Remove every orp_* key from localStorage
+            Object.keys(localStorage)
+              .filter(k => k.startsWith('orp_'))
+              .forEach(k => localStorage.removeItem(k));
+            // Re-hydrate UI to factory defaults
+            applyDriftUI(ORP_SYNC.default('sigil_drift'));
+            applySHSUI  (ORP_SYNC.default('shs_override'));
+            applyOverlayUI(ORP_SYNC.default('overlay_visible'));
+            flashFeedback('cfg-reset-feedback');
+          });
+        }
+
+        /* ── Cross-tab / cross-page event listener ─────────────────────────
+           Keeps the settings panel in sync when another tab saves a value.
+        ─────────────────────────────────────────────────────────────────── */
+        window.addEventListener('orp-settings-update', e => {
+          const { key, value } = e.detail;
+          switch (key) {
+            case 'sigil_drift':    applyDriftUI(value);    break;
+            case 'shs_override':   applySHSUI(value);      break;
+            case 'overlay_visible': applyOverlayUI(value); break;
+          }
+        });
+
+        /* ── Reveal animation for cfg cards ────────────────────────────────── */
+        const cfgObserver = new IntersectionObserver(entries => {
+          entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+        }, { threshold: 0.05 });
+
+        document.querySelectorAll('.cfg-card, .cfg-danger').forEach(el => {
+          el.classList.add('reveal');
+          cfgObserver.observe(el);
+        });
+
+      })(); // end initSettings
     });
   </script>
 </body>

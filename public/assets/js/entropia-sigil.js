@@ -163,61 +163,78 @@
   }
 
 
-  /* ──────────────────────────────────────────────────────────
+/* ──────────────────────────────────────────────────────────
      initEntropiaSigils()
-     Stamps the SVG from <template id="entropiaSigilTemplate">
-     into every empty .entropia-sigil wrapper.
+     Fetches the external Sigil.svg, isolates the filter IDs, 
+     and injects it into all target containers.
   ─────────────────────────────────────────────────────────── */
-  function initEntropiaSigils() {
-    const template = document.getElementById('entropiaSigilTemplate');
+  async function initEntropiaSigils() {
+    // Target both standard wrappers and your settings page container
+    const targets = document.querySelectorAll('.entropia-sigil, .sigil-container');
+    if (targets.length === 0) return;
 
-    if (!template) {
-      console.warn('[ORP_SIGIL] <template id="entropiaSigilTemplate"> not found.');
-      return;
+    try {
+      // 1. Fetch the raw SVG payload from the assets folder
+      const response = await fetch('assets/Sigil.svg');
+      if (!response.ok) throw new Error('Network response was not ok');
+      const rawSVG = await response.text();
+
+      let injected = 0;
+
+      // 2. Inject into every target found on the page
+      targets.forEach(container => {
+        // Prevent double-injection
+        if (container.querySelector('svg')) return;
+
+        // Parse the string into DOM nodes
+        const temp = document.createElement('div');
+        temp.innerHTML = rawSVG.trim();
+        const svgEl = temp.querySelector('svg');
+
+        if (svgEl) {
+          // 3. Generate a unique ID hash for this specific instance
+          const uid = Math.random().toString(36).slice(2, 7);
+          
+          // 4. Map of all filter/gradient IDs that need isolation
+          const idPairs = [
+            ['esGlowCore',  `esGlowCore_${uid}`],
+            ['esGlowOuter', `esGlowOuter_${uid}`],
+            ['esGlowCyan',  `esGlowCyan_${uid}`],
+            ['esGlowSoft',  `esGlowSoft_${uid}`],
+            ['esCoreFill',  `esCoreFill_${uid}`],
+            ['esAuraGrad',  `esAuraGrad_${uid}`],
+            ['esWingGradL', `esWingGradL_${uid}`],
+            ['esWingGradR', `esWingGradR_${uid}`],
+            ['esCyanGrad',  `esCyanGrad_${uid}`],
+            ['esScanClip',  `esScanClip_${uid}`]
+          ];
+
+          // 5. Safely replace IDs and url(#id) references
+          let html = svgEl.innerHTML;
+          idPairs.forEach(([from, to]) => {
+            html = html.split(from).join(to);
+          });
+          svgEl.innerHTML = html;
+
+          // 6. FF-1 FIX: Ensure base SVG doesn't carry compositor penalties
+          svgEl.style.willChange = 'auto';
+          svgEl.style.transform  = '';
+          
+          // 7. Mount to DOM
+          container.appendChild(svgEl);
+          injected++;
+        }
+      });
+
+      console.log(`[ORP_SIGIL] Fetched and mounted ${injected} sigil(s) via network stream.`);
+      
+      // Re-bind motion listeners if your module requires it
+      if (typeof _invalidateCache === 'function') _invalidateCache();
+
+    } catch (err) {
+      console.error("[ORP_SIGIL] CRITICAL: Failed to fetch assets/Sigil.svg", err);
     }
-
-    let injected = 0;
-
-    document.querySelectorAll('.entropia-sigil').forEach(wrapper => {
-      if (wrapper.querySelector('svg')) return;
-
-      const clone = template.content.cloneNode(true);
-      const uid   = Math.random().toString(36).slice(2, 7);
-      const svgEl = clone.querySelector('svg');
-
-      if (svgEl) {
-        const idPairs = [
-          ['esGlowCore',  `esGlowCore_${uid}`],
-          ['esGlowOuter', `esGlowOuter_${uid}`],
-          ['esGlowCyan',  `esGlowCyan_${uid}`],
-          ['esGlowSoft',  `esGlowSoft_${uid}`],
-          ['esCoreFill',  `esCoreFill_${uid}`],
-          ['esAuraGrad',  `esAuraGrad_${uid}`],
-          ['esWingGradL', `esWingGradL_${uid}`],
-          ['esWingGradR', `esWingGradR_${uid}`],
-          ['esCyanGrad',  `esCyanGrad_${uid}`],
-          ['esScanClip',  `esScanClip_${uid}`],
-        ];
-
-        let html = svgEl.innerHTML;
-        idPairs.forEach(([from, to]) => {
-          html = html.split(from).join(to);
-        });
-        svgEl.innerHTML = html;
-
-        /* FF-1 FIX: SVG must NOT have will-change or transform on itself. */
-        svgEl.style.willChange = 'auto';
-        svgEl.style.transform  = '';
-      }
-
-      wrapper.appendChild(clone);
-      injected++;
-    });
-
-    _invalidateCache();
-    console.log(`[ORP_SIGIL] Initialized ${injected} sigil(s).`);
   }
-
 
   /* ──────────────────────────────────────────────────────────
      bindSigilHover()

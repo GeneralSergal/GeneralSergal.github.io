@@ -40,6 +40,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
+  <!-- ORP Sync: must be first script — all downstream modules depend on ORP_SYNC -->
+  <script src="assets/js/orp-sync.js"></script>
+
   <!-- Shared ORP stylesheet -->
   <link rel="stylesheet" href="assets/css/style.css" />
   <!-- Entropia Sigil component — must come AFTER style.css -->
@@ -461,6 +464,360 @@
         scroll-behavior: auto !important;
       }
     }
+
+    /* ═══════════════════════════════════════════════════════
+       SETTINGS SECTION — cfg-* scoped styles
+    ════════════════════════════════════════════════════════ */
+
+    .cfg-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    @media (max-width: 860px) { .cfg-grid { grid-template-columns: 1fr; } }
+
+    .cfg-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 28px 32px;
+      transition: border-color var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .cfg-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--accent-orange));
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+    .cfg-card:focus-within::before,
+    .cfg-card:hover::before { opacity: 1; }
+
+    .cfg-card-title {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--primary-bright);
+      margin-bottom: 6px;
+    }
+    .cfg-card-subtitle {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    /* ── Drift slider ─── */
+    .cfg-slider-wrap { margin-bottom: 20px; }
+    .cfg-slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 12px;
+    }
+    .cfg-slider-label {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .cfg-slider-value {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--accent-orange);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      min-width: 52px;
+      text-align: right;
+      transition: color 0.2s;
+    }
+    .cfg-slider-value.low  { color: var(--success); }
+    .cfg-slider-value.mid  { color: var(--accent-orange); }
+    .cfg-slider-value.high { color: var(--danger); }
+
+    input[type="range"].cfg-range {
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(6,8,11,0.6);
+      outline: none;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      padding: 0;
+      margin: 0;
+    }
+    input[type="range"].cfg-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent-orange));
+      border: 2px solid rgba(255,255,255,0.12);
+      box-shadow: 0 2px 8px rgba(221,17,17,0.4);
+      cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    input[type="range"].cfg-range::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 16px rgba(255,102,0,0.6);
+      transform: scale(1.15);
+    }
+    input[type="range"].cfg-range::-moz-range-thumb {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent-orange));
+      border: 2px solid rgba(255,255,255,0.12);
+      box-shadow: 0 2px 8px rgba(221,17,17,0.4);
+      cursor: pointer;
+    }
+    .cfg-range-track {
+      height: 6px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--primary), var(--accent-orange));
+      pointer-events: none;
+      margin-top: -3px;
+      margin-bottom: 6px;
+      transition: transform 0.15s;
+      transform-origin: left center;
+      width: 100%;
+    }
+
+    /* ── SHS buttons ─── */
+    .cfg-shs-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    @media (max-width: 480px) { .cfg-shs-grid { grid-template-columns: 1fr 1fr; } }
+
+    .cfg-shs-btn {
+      position: relative;
+      padding: 12px 8px;
+      border-radius: var(--radius-xs);
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--muted);
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all var(--transition);
+      text-align: center;
+    }
+    .cfg-shs-btn:hover { border-color: var(--border-strong); color: var(--heading); }
+    .cfg-shs-btn[data-shs="AUTO"].active  { border-color: rgba(138,149,165,0.4); background: rgba(138,149,165,0.08); color: var(--muted); }
+    .cfg-shs-btn[data-shs="GREEN"].active  { border-color: rgba(63,185,80,0.5);  background: rgba(63,185,80,0.1);  color: #3fb950; }
+    .cfg-shs-btn[data-shs="YELLOW"].active { border-color: rgba(250,204,21,0.5); background: rgba(250,204,21,0.1); color: #facc15; }
+    .cfg-shs-btn[data-shs="ORANGE"].active { border-color: rgba(255,102,0,0.5);  background: rgba(255,102,0,0.1);  color: var(--accent-orange); }
+    .cfg-shs-btn[data-shs="RED"].active    { border-color: rgba(221,17,17,0.5);  background: rgba(221,17,17,0.1);  color: var(--danger); }
+    .cfg-shs-btn[data-shs="BLACK"].active  { border-color: rgba(74,79,88,0.5);   background: rgba(74,79,88,0.15);  color: #4a4f58; }
+    .cfg-shs-note {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    /* ── Toggle switch ─── */
+    .cfg-toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .cfg-toggle-row:last-child { border-bottom: none; }
+    .cfg-toggle-name {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--heading);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .cfg-toggle-desc {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-top: 3px;
+      letter-spacing: 0.02em;
+    }
+    .cfg-toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .cfg-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .cfg-toggle-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: rgba(6,8,11,0.8);
+      border: 1px solid var(--border-strong);
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .cfg-toggle-track::after {
+      content: "";
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: transform 0.2s, background 0.2s;
+    }
+    .cfg-toggle input:checked + .cfg-toggle-track {
+      background: rgba(63,185,80,0.15);
+      border-color: rgba(63,185,80,0.4);
+    }
+    .cfg-toggle input:checked + .cfg-toggle-track::after {
+      transform: translateX(20px);
+      background: var(--success);
+    }
+
+    /* ── Drift preview bar ─── */
+    .cfg-drift-preview {
+      margin-top: 20px;
+      padding: 14px 18px;
+      background: rgba(6,8,11,0.6);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .cfg-drift-bar-wrap {
+      flex: 1;
+      min-width: 0;
+      height: 6px;
+      background: rgba(6,8,11,0.8);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .cfg-drift-bar {
+      height: 100%;
+      width: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--success), var(--accent-orange), var(--danger));
+      transform-origin: left center;
+      transition: transform 0.15s cubic-bezier(0.2,0,0,1);
+    }
+    .cfg-drift-bar-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ── Inspector (state readout) ─── */
+    .cfg-inspector {
+      background: rgba(4,5,8,0.85);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      padding: 16px 20px;
+      line-height: 1.9;
+    }
+    .cfg-inspector .key   { color: var(--accent-cyan); }
+    .cfg-inspector .val   { color: var(--accent-orange); font-weight: 700; }
+    .cfg-inspector .val-green  { color: var(--success); font-weight: 700; }
+    .cfg-inspector .val-muted  { color: var(--muted); }
+
+    /* ── Danger zone ─── */
+    .cfg-danger {
+      background: rgba(221,17,17,0.03);
+      border: 1px solid rgba(221,17,17,0.15);
+      border-radius: var(--radius-sm);
+      padding: 28px 32px;
+      grid-column: 1 / -1;
+    }
+    .cfg-danger-title {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--danger);
+      margin-bottom: 6px;
+    }
+    .cfg-danger-desc {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 20px;
+      max-width: 520px;
+    }
+    .cfg-danger-row { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* ── Shared cfg button ─── */
+    .cfg-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 20px;
+      min-height: 40px;
+      border-radius: 999px;
+      border: 1px solid var(--border-strong);
+      background: var(--panel-2);
+      color: var(--muted);
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .cfg-btn:hover {
+      border-color: rgba(255,102,0,0.4);
+      color: var(--accent-orange);
+      background: rgba(255,102,0,0.06);
+    }
+    .cfg-btn.danger { border-color: rgba(221,17,17,0.25); color: var(--danger); background: rgba(221,17,17,0.06); }
+    .cfg-btn.danger:hover { border-color: rgba(221,17,17,0.5); background: rgba(221,17,17,0.12); }
+    .cfg-btn:active { transform: scale(0.97); }
+
+    /* ── Flash feedback ─── */
+    .cfg-feedback {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--success);
+      margin-top: 12px;
+      letter-spacing: 0.06em;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .cfg-feedback.show { opacity: 1; }
+
+    /* ── Reveal animation for cfg cards ─── */
+    .cfg-card.reveal, .cfg-danger.reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    .cfg-card.reveal.visible, .cfg-danger.reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
   </style>
 </head>
 
@@ -524,6 +881,7 @@
         <a href="#network">Network</a>
         <a href="#avatars">Avatars</a>
         <a href="#projects">Projects</a>
+        <a href="#settings">Settings</a>
         <a href="https://generalsergal.github.io/ORP/">ORP Project</a>
       </div>
     </div>
@@ -535,6 +893,7 @@
         <a href="#network">Network</a>
         <a href="#avatars">Avatars</a>
         <a href="#projects">Projects</a>
+        <a href="#settings">Settings</a>
         <a href="https://generalsergal.github.io/ORP/">ORP Project</a>
       </div>
     </div>
@@ -1121,6 +1480,164 @@
           <a class="action-trigger" style="margin-top:16px;" href="https://github.com/GeneralSergal" target="_blank" rel="noopener noreferrer">Initialize Source Repository →</a>
         </div> -->
       </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SETTINGS — ORP_SYNC Global Layer
+       id="settings" — linked from nav
+  ═══════════════════════════════════════════════════════ -->
+  <section id="settings">
+    <div class="container">
+
+      <div class="section-header">
+        <div class="section-eyebrow">ORP Δ // Global Sync Layer</div>
+        <h2 class="section-title">System <span style="color:var(--accent-orange);">Configuration</span></h2>
+        <div class="section-description">
+          Persistent sigil calibration, SHS state override, and NESS overlay control via
+          <code style="font-family:var(--font-mono);font-size:0.9em;color:var(--accent-cyan);">ORP_SYNC</code>.
+          All changes persist across page loads and propagate in real time.
+        </div>
+      </div>
+
+      <!-- ── Module 1: Vortex Calibration ──────────────── -->
+      <div style="margin-bottom:8px;">
+        <div class="section-eyebrow" style="margin-bottom:16px;">Module 1 // Entropia Sigil</div>
+      </div>
+
+      <div class="cfg-grid">
+
+        <!-- Drift slider -->
+        <div class="cfg-card">
+          <div class="cfg-card-title">DRIFT INTENSITY // ΔS OVERRIDE</div>
+          <div class="cfg-card-subtitle">Manual control of --drift-intensity on all .entropia-sigil elements.</div>
+
+          <div class="cfg-slider-wrap">
+            <div class="cfg-slider-header">
+              <span class="cfg-slider-label">DRIFT VALUE</span>
+              <span class="cfg-slider-value" id="cfg-drift-display">0.50</span>
+            </div>
+            <input type="range" class="cfg-range" id="cfg-drift-slider"
+                   min="0" max="1" step="0.01" value="0.5"
+                   aria-label="Sigil drift intensity" />
+            <div class="cfg-range-track" id="cfg-drift-track" style="transform:scaleX(0.5)"></div>
+            <div class="cfg-drift-preview">
+              <span class="cfg-drift-bar-label">INTENSITY</span>
+              <div class="cfg-drift-bar-wrap">
+                <div class="cfg-drift-bar" id="cfg-drift-bar" style="transform:scaleX(0.5)"></div>
+              </div>
+              <span class="cfg-drift-bar-label" id="cfg-drift-state-label">MID</span>
+            </div>
+          </div>
+          <div class="cfg-feedback" id="cfg-drift-feedback">// DRIFT SAVED TO PERSISTENCE LAYER</div>
+        </div>
+
+        <!-- Intensity reference -->
+        <div class="cfg-card">
+          <div class="cfg-card-title">INTENSITY REFERENCE</div>
+          <div class="cfg-card-subtitle">How drift values map to NESS thermodynamic states.</div>
+          <div class="cfg-inspector">
+            <div><span class="key">0.00</span> — <span class="val-green">QUIESCENT</span> baseline nominal</div>
+            <div><span class="key">0.00–0.25</span> — <span class="val-green">GREEN</span> stable, low variance</div>
+            <div><span class="key">0.25–0.55</span> — <span class="val" style="color:#facc15">YELLOW</span> early drift</div>
+            <div><span class="key">0.55–0.78</span> — <span class="val">ORANGE</span> structural degradation</div>
+            <div><span class="key">0.78–1.00</span> — <span class="val" style="color:var(--danger)">RED</span> critical instability</div>
+            <div style="margin-top:8px"><span class="key">1.00</span> — <span class="val-muted">BLACK</span> terminal failure</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── Module 2: SHS State Override ──────────────── -->
+      <div style="margin:32px 0 16px;">
+        <div class="section-eyebrow">Module 2 // Stability Health State</div>
+      </div>
+
+      <div class="cfg-card" style="max-width:680px;margin-bottom:32px;">
+        <div class="cfg-card-title">STATE SELECTOR</div>
+        <div class="cfg-card-subtitle">Force the sigil into a specific SHS color state, bypassing live telemetry. AUTO restores runtime binding.</div>
+
+        <div class="cfg-shs-grid" id="cfg-shs-selector" role="group" aria-label="SHS State selector">
+          <button class="cfg-shs-btn active" data-shs="AUTO"   aria-pressed="true">AUTO</button>
+          <button class="cfg-shs-btn"        data-shs="GREEN"  aria-pressed="false">GREEN</button>
+          <button class="cfg-shs-btn"        data-shs="YELLOW" aria-pressed="false">YELLOW</button>
+          <button class="cfg-shs-btn"        data-shs="ORANGE" aria-pressed="false">ORANGE</button>
+          <button class="cfg-shs-btn"        data-shs="RED"    aria-pressed="false">RED</button>
+          <button class="cfg-shs-btn"        data-shs="BLACK"  aria-pressed="false">BLACK</button>
+        </div>
+
+        <div class="cfg-shs-note">
+          // AUTO — sigil reacts to live ΔS from runtime-overlay.js<br>
+          // MANUAL — sigil locked to selected state; overlay updates ignored
+        </div>
+        <div class="cfg-feedback" id="cfg-shs-feedback">// SHS OVERRIDE SAVED</div>
+      </div>
+
+      <!-- ── Module 3: NESS Overlay ─────────────────────── -->
+      <div style="margin-bottom:16px;">
+        <div class="section-eyebrow">Module 3 // Clinical Core HUD</div>
+      </div>
+
+      <div class="cfg-grid">
+
+        <!-- Overlay toggles -->
+        <div class="cfg-card">
+          <div class="cfg-card-title">OVERLAY CONTROLS</div>
+          <div class="cfg-card-subtitle">NESS HUD visibility and session entropy state.</div>
+
+          <div class="cfg-toggle-row">
+            <div>
+              <div class="cfg-toggle-name">NESS HUD Visible</div>
+              <div class="cfg-toggle-desc">Toggles .cc-hidden on #cc-overlay</div>
+            </div>
+            <label class="cfg-toggle" aria-label="NESS HUD visibility">
+              <input type="checkbox" id="cfg-overlay-toggle" checked />
+              <div class="cfg-toggle-track"></div>
+            </label>
+          </div>
+
+          <div style="margin-top:20px;">
+            <button class="cfg-btn" id="cfg-entropy-reset-btn">[ RESET SESSION ENTROPY ]</button>
+            <div class="cfg-feedback" id="cfg-entropy-feedback">// SESSION ENTROPY CLEARED</div>
+          </div>
+        </div>
+
+        <!-- Signal chain note -->
+        <div class="cfg-card">
+          <div class="cfg-card-title">SIGNAL CHAIN</div>
+          <div class="cfg-card-subtitle">ORP_SYNC integration reference.</div>
+          <div class="cfg-inspector">
+            <div style="color:var(--heading);margin-bottom:8px;">FLOW:</div>
+            <div>  ORP_SYNC.<span class="val">save</span>('sigil_drift', v)</div>
+            <div>     ↓ localStorage + CustomEvent</div>
+            <div>  entropia-sigil.js listener</div>
+            <div>     ↓ updateSigilDrift(v)</div>
+            <div>  --drift-intensity CSS var</div>
+            <div>     ↓ CSS animation layers</div>
+            <div>  <span class="val-green">Visual state update</span></div>
+            <div style="margin-top:8px;color:var(--heading);">LATENCY: &lt;1ms (same-tab)</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── Reset Zone ─────────────────────────────────── -->
+      <div class="cfg-grid">
+        <div class="cfg-danger">
+          <div class="cfg-danger-title">⚠ DESTRUCTIVE OPERATIONS</div>
+          <div class="cfg-danger-desc">
+            Removes all <code style="font-family:var(--font-mono);font-size:0.9em;color:var(--accent-cyan);">orp_*</code> keys from localStorage and broadcasts factory defaults to all open pages. Cannot be undone.
+          </div>
+          <div class="cfg-danger-row">
+            <button class="cfg-btn danger" id="cfg-reset-all-btn">[ RESET ALL SETTINGS ]</button>
+            <button class="cfg-btn danger" id="cfg-clear-storage-btn">[ CLEAR ALL ORP STORAGE ]</button>
+          </div>
+          <div class="cfg-feedback" id="cfg-reset-feedback">// ALL ORP SETTINGS RESET TO FACTORY DEFAULTS</div>
+        </div>
+      </div>
+
     </div>
   </section>
 

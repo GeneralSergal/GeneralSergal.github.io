@@ -10,66 +10,35 @@
      4. Manages Warden state across the whole site
 
    PATCH LOG (v3.0.1–v3.0.3): [original patches preserved — see git]
+   PATCH LOG (v3.1.0 — Firefox GPU + Overlay / Graphics fixes): [preserved]
 
-   PATCH LOG (v3.1.0 — Firefox GPU + Overlay / Graphics fixes):
-     FF-1    — Removed will-change:transform from #cc-overlay root.
-               Firefox composites every stacking context that has
-               will-change:transform, causing the overlay (which
-               contains animated children) to fork multiple GPU layers.
-               The overlay is position:fixed; Firefox already promotes it.
-               will-change removed. translateZ(0) hack removed (same issue).
-               contain:layout style paint kept — that's compositing-safe.
-     FF-2    — backdrop-filter on #cc-tab and .cc-panel-inner:
-               Firefox creates one intermediate surface per element with
-               backdrop-filter. Both elements already had blur(12px) /
-               blur(16px). No change to the values, but added:
-                 backface-visibility: hidden;
-               on both — this is the Firefox hint to promote the element
-               as a single GPU layer rather than repainting it per frame.
-     FF-3    — CSS transition on #cc-overlay root (opacity/visibility/
-               transform) removed. Root transitions on fixed positioned
-               composited elements force full-page stacking context
-               invalidation on FF. The overlay is now always opacity:1
-               and hidden only via cc-hidden class (opacity→0 + visibility).
-     GFXFIX-1— ASCII panel overlapping: _syncAsciiPanel() was writing
-               textContent to .ascii-core-panel, a pre-existing page
-               element whose dimensions were not guaranteed. Added a
-               visibility guard (offsetParent check) and gave the output
-               fixed character-width columns to prevent layout bleed.
-     GFXFIX-2— cc-panel width:0 → width:340px animation triggers a
-               layout recalc on Firefox because 'width' is not GPU-
-               compositable. Replaced with max-width transition +
-               clip-path technique: panel clips to zero via
-               clip-path:inset(0 100% 0 0) → inset(0 0 0 0), which is
-               fully GPU-compositable on both Chrome and Firefox.
-               will-change:clip-path added to panel element.
-               Sidebar: max-width is also NOT compositable; only
-               clip-path / transform / opacity are safe here.
-     GFXFIX-3— Nuclear pulse @keyframe caused additive glow on
-               Firefox due to compounding text-shadow repaint. Scoped
-               the nuclear animation to pill only; metric val uses a
-               simpler opacity-only variant on FF.
-     GFXFIX-4— addLog() innerHTML rebuild for each new entry was
-               causing forced layout in the log container. Now uses
-               DocumentFragment + prepend to avoid O(n) innerHTML parse.
-     SYNC-1  — _syncAsciiPanel character art corrected: the box-drawing
-               was misaligned in proportional fonts because spaces were
-               used for indentation. Now uses explicit monospace spacing
-               tokens and pre-formatted column widths matching a 40-char
-               terminal. Fixed bottom-slash escape (was \\\\  → was
-               rendering as \\ in textContent; now correct literal \).
-     SYNC-2  — runtime.html's standalone NESS engine runs a SECOND
-               rAF/setInterval loop in parallel. To prevent double-decay
-               on runtime.html, _rafLoop now sets window._orpOverlayActive
-               so runtime.html's inline script can check before starting
-               its own setInterval. (See runtime.html sync patch.)
-     SYNC-3  — rc-tab-shs pill (the overlay tab pill) is now the
-               canonical SHS source. MutationObserver re-exported on
-               window._orpSHSPill so runtime.html can observe it directly
-               instead of running its own poll loop.
-     PERF-FF — Event listeners that were non-passive but never called
-               preventDefault converted to passive (click on document
-               already was passive-safe; no preventions used).
+   PATCH LOG (v3.2.0 — Full Inter-Sync):
+     SYNC-5  — Boot hydration from ORP_SYNC:
+               On init, ness_pressure is loaded from ORP_SYNC and applied
+               to window._orpSHSState.currentState so the SHS machine
+               resumes at the correct state on page load / cross-tab
+               navigation rather than always starting at GREEN.
+     SYNC-6  — Boot hydration for Warden state:
+               ness_warden_active is loaded on init and pre-loads
+               state.warden / state.wardenState so the Warden bar
+               reflects the persisted MANIFEST/PRIMED/DORMANT status
+               immediately on any page without waiting for a tick.
+     SYNC-7  — Cross-tab ness_warden_active listener:
+               orp-settings-update now handles 'ness_warden_active'.
+               When another tab's Warden fires or clears, this overlay
+               updates its warden bar/badge instantly.
+     SYNC-8  — sigil_drift written back to ORP_SYNC:
+               updateSigilDrift-equivalent drift value (combinedDrift)
+               is persisted via ORP_SYNC.save('sigil_drift', …) inside
+               the rAF loop whenever the sigil is updated, ensuring
+               entropia-sigil.js on other pages stays in sync.
+     SYNC-9  — Coordinator telemetry bridge:
+               Listens to 'orp-telemetry-request' events emitted by
+               ORP_COORDINATOR. Logs run ID, consensus, drift, and mode
+               to the cc-log panel for real-time coordinator visibility.
+     SYNC-10 — orp-runtime-mode-change bridge:
+               Listens to coordinator mode-change events and logs them
+               to the cc-log with appropriate severity tags.
    ============================================================ */
 
 (() => {
@@ -139,6 +108,39 @@
     eventJitter:       0,
     jitterDrift:       0,
   };
+
+  /* ─────────────────────────────────────────────────────────
+     SYNC-5 / SYNC-6: Boot hydration from ORP_SYNC
+     Restore SHS machine state and Warden bar from persisted
+     values so every page load begins at the correct runtime
+     state rather than a cold GREEN/DORMANT baseline.
+  ─────────────────────────────────────────────────────────── */
+  (function _hydrateFromORP_SYNC() {
+    if (!window.ORP_SYNC) return;
+
+    /* SYNC-5: restore SHS machine state */
+    const persistedSHS = ORP_SYNC.load('ness_pressure', 'GREEN');
+    if (SHS_STATES.includes(persistedSHS)) {
+      window._orpSHSState.currentState = persistedSHS;
+      state.shs = persistedSHS;
+    }
+
+    /* SYNC-6: restore Warden state from ness_warden_active flag.
+       Pre-load the warden bar so badge/icon are correct on first render. */
+    const wardenActive = ORP_SYNC.load('ness_warden_active', false);
+    if (wardenActive === true) {
+      /* Put warden into MANIFEST territory so the first update() renders
+         the badge immediately without waiting for a decay tick. */
+      state.warden      = 75;
+      state.wardenState = 'MANIFEST';
+    }
+
+    /* Also restore rho from persisted SHS-to-rho approximation */
+    const shsToRho = { GREEN: 100, YELLOW: 80, ORANGE: 58, RED: 30, BLACK: 5 };
+    if (shsToRho[persistedSHS] !== undefined && persistedSHS !== 'GREEN') {
+      state.rho = shsToRho[persistedSHS];
+    }
+  }());
 
   /* ── Helpers ────────────────────────────────────────────── */
   const clamp  = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -280,9 +282,7 @@
     const style = document.createElement("style");
     style.id = "cc-styles";
     style.textContent = `
-      /* FF-1 FIX: No will-change/translateZ on the root — Firefox
-         auto-promotes position:fixed elements; adding will-change on
-         top forks additional GPU layers for every animated child. */
+      /* FF-1 FIX: No will-change/translateZ on the root */
       #cc-overlay {
         position: fixed;
         bottom: 24px;
@@ -319,13 +319,10 @@
         font-weight: 700;
         letter-spacing: 0.1em;
         cursor: pointer;
-        /* FF-2: backface-visibility:hidden tells Firefox to promote this
-           backdrop-filter element as a single stable GPU layer */
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
-        /* FF-3 FIX: transition removed from root; only transform on tab */
         transition: transform 0.25s cubic-bezier(0.23,1,0.32,1),
                     border-color 0.25s ease;
         will-change: transform;
@@ -388,8 +385,6 @@
       .cc-shs-pill.amber  { color: #ff8833; border-color: rgba(255,136,51,0.3);  background: rgba(255,136,51,0.08); }
       .cc-shs-pill.orange { color: #ff8833; border-color: rgba(255,136,51,0.3);  background: rgba(255,136,51,0.08); }
       .cc-shs-pill.red    { color: #ff3333; border-color: rgba(221,17,17,0.35);  background: rgba(221,17,17,0.1); }
-      /* SHS-4 / GFXFIX-3: NUCLEAR — pill gets glow animation;
-         metric val uses opacity pulse only (no text-shadow repaint on FF) */
       .cc-shs-pill.nuclear,
       .cc-shs-pill.black {
         color: #ff0000;
@@ -403,15 +398,11 @@
         to   { box-shadow: 0 0 12px rgba(255,0,0,0.8), 0 0 24px rgba(255,0,0,0.3); }
       }
 
-      /* GFXFIX-2 FIX: Replace width:0→340px transition with clip-path.
-         clip-path:inset() is GPU-compositable on FF+Chrome.
-         width stays at a fixed 340px; only visibility changes via clip. */
       #cc-panel {
         width: 340px;
         overflow: hidden;
         opacity: 0;
         clip-path: inset(0 100% 0 0 round 18px);
-        /* GFXFIX-2: will-change: clip-path, opacity — both compositable */
         will-change: clip-path, opacity;
         transition: clip-path 0.42s cubic-bezier(0.23,1,0.32,1),
                     opacity    0.25s ease;
@@ -429,7 +420,6 @@
         border: 1px solid rgba(221,17,17,0.2);
         border-radius: 18px;
         padding: 18px;
-        /* FF-2: backface-visibility on the blur element */
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         backface-visibility: hidden;
@@ -500,8 +490,6 @@
       .cc-metric-val.orange { color: #ff8833; }
       .cc-metric-val.red    { color: #ff3333; }
       .cc-metric-val.cyan   { color: #00d4ff; }
-      /* GFXFIX-3: Nuclear metric val — opacity pulse instead of text-shadow
-         animation, which forces expensive rasterization on FF */
       .cc-metric-val.nuclear,
       .cc-metric-val.black {
         color: #ff0000;
@@ -535,7 +523,6 @@
         border-radius: 999px;
         overflow: hidden;
       }
-      /* Bar fill: use transform:scaleX instead of width% — compositable */
       .cc-bar-fill {
         height: 100%;
         border-radius: 999px;
@@ -637,7 +624,6 @@
         margin-bottom: 10px;
         display: flex;
         flex-direction: column-reverse;
-        /* Isolate scroll container from parent stacking context */
         contain: strict;
       }
       .cc-log::-webkit-scrollbar { width: 3px; }
@@ -692,7 +678,6 @@
           font-size: 0.68rem;
           align-self: flex-start;
         }
-        /* Mobile: panel clips horizontally to screen width */
         #cc-panel {
           width: min(340px, calc(100vw - 32px));
           max-height: 600px;
@@ -707,7 +692,6 @@
         }
       }
 
-      /* cc-hidden: opacity+visibility (no transform, no will-change) */
       #cc-overlay.cc-hidden {
         opacity: 0 !important;
         visibility: hidden !important;
@@ -723,7 +707,6 @@
         pointer-events: none !important;
       }
 
-      /* HIGH-3 PATCH: scoped glitch to non-floating sigils */
       .entropia-sigil:not(.entropia-sigil--hero-bg).high-drift {
         filter: contrast(1.15) brightness(1.08) hue-rotate(8deg);
         animation: orp-sigil-glitch 0.4s linear infinite alternate;
@@ -750,7 +733,6 @@
   }
 
   /* ── Log ────────────────────────────────────────────────── */
-  /* GFXFIX-4: DocumentFragment prepend — no innerHTML parse per entry */
   function addLog(tagClass, tag, msg) {
     const timestamp = nowStr();
 
@@ -760,10 +742,8 @@
     const el = _dom().log;
     if (!el) return;
 
-    /* Build new line without touching innerHTML of the container */
     const line    = document.createElement("div");
     line.className = "cc-log-line";
-    /* Build inner nodes via DOM rather than innerHTML parse */
     const tSpan   = document.createElement("span");
     tSpan.className = "t";
     tSpan.textContent = timestamp;
@@ -805,14 +785,6 @@
     ORANGE: "orange",
     RED:    "red",
     BLACK:  "nuclear",
-  };
-
-  const SHS_DEGRADE_THRESHOLDS = {
-    GREEN:  75,
-    YELLOW: 55,
-    ORANGE: 35,
-    RED:    15,
-    BLACK:   0,
   };
 
   const SHS_RECOVER_THRESHOLDS = {
@@ -902,7 +874,6 @@
   }
 
   /* ── Update DOM ─────────────────────────────────────────── */
-  /* BAR FIX: bars use scaleX(0..1) via transform instead of width% */
   function _setBarScale(barEl, pct) {
     if (!barEl) return;
     barEl.style.transform = `scaleX(${clamp(pct, 0, 100) / 100})`;
@@ -998,10 +969,7 @@
   }
 
   /* ──────────────────────────────────────────────────────────
-     ASCII panel live sync
-     GFXFIX-1: Fixed character-width columns (40ch terminal),
-     proper escape sequences, visibility guard.
-     SYNC-1: Corrected box-drawing alignment.
+     ASCII panel live sync — preserved from v3.1.0
   ─────────────────────────────────────────────────────────── */
   const ASCII_SHS_STYLE = {
     GREEN:  { color: '#3fb950', glow: 'rgba(63,185,80,0.45)',  char: '~', label: '[= STAR =]',  core: '[ CORE ]' },
@@ -1017,7 +985,6 @@
 
   function _syncAsciiPanel(shs) {
     const panel = _dom().asciiPanel;
-    /* GFXFIX-1: guard — only write if panel is in the DOM and visible */
     if (!panel || panel.offsetParent === null && !panel.closest('body')) return;
 
     const key  = ASCII_SHS_STYLE[shs] ? shs : 'GREEN';
@@ -1035,16 +1002,12 @@
     }
 
     const wave      = _buildWave(cfg.char, drift, _asciiFrame);
-    /* SYNC-1: Use const strings without variable-length glitch on flanks
-       (the // delimiters are fixed-width; glitch only on RED/BLACK) */
     const useGlitch = (key === 'RED' || key === 'BLACK') && Math.random() > 0.6;
     const wL        = useGlitch ? _glitchStr('//', drift) : '//';
     const wR        = useGlitch ? _glitchStr('//', drift) : '//';
     const coreLabel = (drift > 0.55 && Math.random() > 0.5)
       ? _glitchStr(cfg.core, drift) : cfg.core;
 
-    /* SYNC-1: Fixed-column ASCII art — every line is exactly 36 chars.
-       Uses backslash literals (not escape sequences in template). */
     panel.textContent =
 `    ${wL}              ${wR}
    ${wL}              ${wR}
@@ -1181,6 +1144,11 @@
     let _lastRafTs     = 0;
     const _FPS_ALPHA   = 0.1;
 
+    /* SYNC-8: throttle sigil_drift ORP_SYNC writes to avoid flooding */
+    let _lastDriftWrite   = 0;
+    let _lastWrittenDrift = -1;
+    const DRIFT_WRITE_INTERVAL_MS = 800;
+
     function _rafLoop(ts) {
       const rawDelta = _lastRafTs > 0 ? ts - _lastRafTs : 16.67;
       _lastRafTs = ts;
@@ -1253,6 +1221,17 @@
           window.updateSigilDrift(combinedDrift);
         }
 
+        /* SYNC-8: Write combinedDrift back to ORP_SYNC so other pages
+           and entropia-sigil.js instances stay in sync.
+           Throttled to avoid flooding the storage/event bus. */
+        if (window.ORP_SYNC &&
+            ts - _lastDriftWrite > DRIFT_WRITE_INTERVAL_MS &&
+            Math.abs(combinedDrift - _lastWrittenDrift) > 0.01) {
+          ORP_SYNC.save('sigil_drift', parseFloat(combinedDrift.toFixed(3)));
+          _lastDriftWrite   = ts;
+          _lastWrittenDrift = combinedDrift;
+        }
+
         _lastSigilTs = ts;
       }
 
@@ -1260,21 +1239,11 @@
     }
     state._rafHandle = requestAnimationFrame(_rafLoop);
 
-    /* SYNC-2: Signal that the overlay rAF loop is running.
-       runtime.html's inline script checks _orpOverlayActive before
-       starting its own setInterval to avoid double-decay. */
+    /* SYNC-2 / SYNC-3 / SYNC-4: Signal overlay is live */
     window._orpRafActive      = true;
     window._orpOverlayActive  = true;
-
-    /* SYNC-3: Expose the SHS pill element so runtime.html can observe
-       it directly without polling */
-    window._orpSHSPill = _dom().pill;
-
-    /* SYNC-4: Expose injectDelta so runtime.html buttons can delegate
-       into the overlay's authoritative state rather than running a
-       second mutation path. Without this, the Warden bar never fills
-       from the rc-inject / rc-warden buttons. */
-    window._orpInjectDelta = injectDelta;
+    window._orpSHSPill        = _dom().pill;
+    window._orpInjectDelta    = injectDelta;
 
     window.addEventListener('pagehide', () => {
       if (state._rafHandle) { cancelAnimationFrame(state._rafHandle); state._rafHandle = null; }
@@ -1285,21 +1254,79 @@
     applySessionPressure();
     if (_dom().asciiPanel) _syncAsciiPanel('GREEN');
 
-    /* NESS-SYNC: React to ORP_SYNC changes fired from other tabs.
-       If another page boosts entropy or triggers Warden, this
-       overlay updates instantly without a reload. */
+    /* ─────────────────────────────────────────────────────────
+       NESS-SYNC + SYNC-7 + SYNC-9 + SYNC-10:
+       React to ORP_SYNC changes fired from other tabs/modules.
+    ───────────────────────────────────────────────────────── */
     window.addEventListener('orp-settings-update', (e) => {
       if (!e.detail) return;
       const { key, value } = e.detail;
+
+      /* ness_entropy: re-hydrate from another tab */
       if (key === 'ness_entropy' && typeof value === 'number') {
-        /* Re-hydrate session entropy from another tab's write */
         state.sessionEntropy = value;
         if (_dom().sessionVal) _dom().sessionVal.textContent = fmt4(value);
       }
+
+      /* overlay_visible: show/hide from settings page */
       if (key === 'overlay_visible') {
-        const overlay = document.getElementById('cc-overlay');
-        overlay?.classList.toggle('cc-hidden', value === false);
+        const ov = document.getElementById('cc-overlay');
+        ov?.classList.toggle('cc-hidden', value === false);
       }
+
+      /* SYNC-7: ness_warden_active — cross-tab Warden state sync.
+         If another tab's Warden.js fires (MANIFEST) or clears,
+         update this overlay's warden bar immediately. */
+      if (key === 'ness_warden_active') {
+        if (value === true && state.wardenState !== 'MANIFEST') {
+          /* Another tab's Warden fired — pre-load bar to MANIFEST zone */
+          if (state.warden < 75) {
+            state.warden = 75;
+            addLog('er', 'WRD', 'Cross-tab Warden MANIFEST received');
+            update();
+          }
+        } else if (value === false && state.wardenState === 'MANIFEST') {
+          /* Another tab reset — step down gracefully */
+          state.warden = 30;
+          addLog('ok', 'WRD', 'Cross-tab Warden cleared');
+          update();
+        }
+      }
+
+      /* SYNC-9: Coordinator telemetry — log run results in cc-log */
+      if (key === 'coordinator_run_id' && value != null) {
+        const consensus = window.ORP_SYNC
+          ? ORP_SYNC.load('coordinator_last_consensus', null)
+          : null;
+        const drift = window.ORP_SYNC
+          ? ORP_SYNC.load('coordinator_last_drift', null)
+          : null;
+        if (consensus !== null) {
+          const tag = consensus >= 0.7 ? 'ok' : consensus >= 0.4 ? 'wn' : 'er';
+          addLog(tag, 'ORC', `run#${value} cns:${consensus} Δ:${drift}`);
+        }
+      }
+    });
+
+    /* SYNC-10: orp-runtime-mode-change — coordinator mode change bridge.
+       Logs mode transitions (NOMINAL → DEGRADED → ISOLATED → LOCKDOWN)
+       directly to the cc-log so operators see coordinator health here. */
+    window.addEventListener('orp-runtime-mode-change', (e) => {
+      if (!e.detail) return;
+      const { mode, prev, reason } = e.detail;
+      const modeTagClass = mode === 'LOCKDOWN' ? 'nx'
+                         : mode === 'ISOLATED'  ? 'er'
+                         : mode === 'DEGRADED'  ? 'wn'
+                         :                        'ok';
+      addLog(modeTagClass, 'MODE', `${prev}→${mode} [${reason || 'auto'}]`);
+    });
+
+    /* SYNC-9 alt: orp-telemetry-request — direct coordinator telemetry event */
+    window.addEventListener('orp-telemetry-request', (e) => {
+      if (!e.detail || e.detail.source !== 'orp-coordinator') return;
+      const { runId, consensus, drift, weighted } = e.detail;
+      const tag = consensus >= 0.7 ? 'ok' : consensus >= 0.4 ? 'wn' : 'er';
+      addLog(tag, 'ORC', `run#${runId} w:${weighted} cns:${consensus}`);
     });
 
     const page = (window.location.pathname.split("/").pop() || "index.html")
@@ -1307,6 +1334,12 @@
     addLog("ok", "CC",  `Initialized on ${page}`);
     addLog("in", "J⊥", "VORTEX detection: ENGAGED");
     addLog("ok", "ISO", "Epistemic isolation: NOMINAL");
+
+    /* Log restored state if non-nominal */
+    if (window._orpSHSState.currentState !== 'GREEN') {
+      addLog("wn", "RST", `State restored: SHS=${window._orpSHSState.currentState}`);
+    }
+
     update();
   }
 

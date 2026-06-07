@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1366">
+<title>▽▽▽ LOKI'S FORM ▽▽▽</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#060101;display:flex;justify-content:center;min-height:100vh;align-items:flex-start;padding:8px;font-family:'Rajdhani',sans-serif;color:#e0b8b8}
+
+.sheet{
+  width:1366px;min-height:768px;background:#080101;
+  border:1.5px solid #6b0000;overflow:hidden;position:relative;
+  box-shadow:0 0 40px rgba(120,0,0,0.5),inset 0 0 60px rgba(0,0,0,0.7);
+}
+.sheet::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:200;
+  background:radial-gradient(ellipse 80% 80% at 50% 50%, transparent 60%, rgba(0,0,0,0.5) 100%);
+}
+
+/* HEADER */
+.hdr{
+  text-align:center;padding:9px 16px 7px;border-bottom:1px solid #5a0000;
+  background:linear-gradient(180deg,#130303 0%,#090101 100%);position:relative;z-index:10;
+}
+.hdr::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,#bb0000 30%,#ff3333 50%,#bb0000 70%,transparent)}
+.htitle{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;letter-spacing:8px;
+  color:#fff;text-shadow:0 0 12px #cc0000,0 0 28px rgba(180,0,0,0.45);margin-bottom:2px}
+.hsub{font-family:'Share Tech Mono',monospace;font-size:10px;color:#b05050;letter-spacing:3px}
+
+/* MAIN GRID */
+.mgrid{display:grid;grid-template-columns:222px 1fr 254px;height:690px}
+
+/* PANEL BASE */
+.panel{border-right:1px solid #300000;overflow:hidden;display:flex;flex-direction:column}
+.panel:last-child{border-right:none}
+
+.sec{border-bottom:1px solid #220000;padding:5px 8px;flex-shrink:0}
+.sec:last-child{border-bottom:none}
+.stitle{font-family:'Orbitron',sans-serif;font-size:8px;font-weight:700;color:#ff4444;
+  letter-spacing:2px;margin-bottom:4px;padding-bottom:2px;border-bottom:1px solid rgba(200,0,0,0.2)}
+
+.kv{display:flex;gap:4px;line-height:1.55;align-items:baseline}
+.k{color:#905050;font-size:8px;font-weight:500;white-space:nowrap;flex-shrink:0;min-width:82px;letter-spacing:.5px}
+.v{color:#dda8a8;font-size:8px;font-weight:600;line-height:1.5}
+.v.red{color:#ff5555}.v.wh{color:#fff}.v.gold{color:#d4ac50}
+
+.blist{list-style:none;margin-top:1px}
+.blist li{font-size:8px;color:#c89898;line-height:1.6;padding-left:10px;position:relative}
+.blist li::before{content:'▶';position:absolute;left:0;color:#770000;font-size:5.5px;top:2.5px}
+.blist li.sub{padding-left:16px;color:#a07070;font-size:7.5px}
+.blist li.sub::before{content:'–';font-size:9px;top:-0.5px;left:6px;color:#550000}
+
+/* STATS */
+.stat{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+.sn{width:96px;flex-shrink:0;font-size:7.5px;color:#905050;font-weight:500;letter-spacing:.5px}
+.sbar{flex:1;height:5px;background:rgba(60,0,0,0.6);border:.5px solid #2d0000;border-radius:1px;overflow:hidden}
+.sf{height:100%;border-radius:1px;box-shadow:0 0 5px rgba(220,0,0,0.4);
+  background:linear-gradient(90deg,#780000 0%,#c80000 55%,#ff4444 100%)}
+.sv{font-family:'Orbitron',sans-serif;font-size:7px;font-weight:700;color:#ff5555;width:28px;text-align:right}
+
+/* ORP TRINITY SECTION */
+.trinity{display:flex;justify-content:space-around;align-items:flex-start;padding:5px 4px;gap:2px}
+.tri-item{flex:1;text-align:center}
+.tri-lbl{font-family:'Orbitron',sans-serif;font-size:6px;font-weight:700;color:#ff4444;letter-spacing:.8px;margin-top:2px}
+.tri-sub{font-size:6px;color:#c06060;line-height:1.4}
+.tri-mode{font-size:5.5px;color:#804040}
+
+/* CENTER PANEL */
+.cpanel{display:grid;grid-template-columns:196px 1fr 180px;background:#070100}
+.svcol{display:flex;flex-direction:column;border-right:1px solid #220000}
+.svcol.rt{border-right:none;border-left:1px solid #220000}
+.vframe{flex:1;position:relative;overflow:hidden;border-bottom:1px solid #1e0000}
+.vframe:last-child{border-bottom:none}
+.vlabel{position:absolute;top:4px;left:5px;font-family:'Orbitron',sans-serif;font-size:6.5px;
+  color:#804040;letter-spacing:1.5px;background:rgba(7,1,0,0.85);padding:1px 4px;
+  border:.5px solid #330000;z-index:5}
+
+/* MAIN ART COLUMN */
+.artcol{display:flex;flex-direction:column}
+.artarea{flex:1;position:relative;overflow:hidden;background:#060100}
+.artarea::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(ellipse 70% 60% at 50% 45%,rgba(100,0,0,0.15) 0%,transparent 70%)}
+
+.embrow{border-top:1px solid #1e0000;padding:5px 6px;flex-shrink:0}
+.etitle{font-family:'Orbitron',sans-serif;font-size:6.5px;color:#b04040;letter-spacing:2px;
+  text-align:center;margin-bottom:4px}
+.patches{display:flex;gap:5px;justify-content:center;align-items:center;flex-wrap:nowrap}
+.patch{border:1px solid #5a0000;padding:4px 6px;text-align:center;background:#0d0303;flex-shrink:0}
+.patch.hex{clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  padding:9px 8px;min-width:62px;min-height:52px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center}
+.pname{font-family:'Orbitron',sans-serif;font-size:7px;font-weight:700;color:#dcc09a;letter-spacing:.5px}
+.psub{font-size:6px;color:#9a7060;margin-top:1px}
+
+/* FOOTER */
+.footer{border-top:1px solid #2a0000;padding:5px 16px;text-align:center;background:#050100;
+  font-family:'Share Tech Mono',monospace;font-size:9px;color:#5a2020;letter-spacing:1.5px}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="htitle">▽▽▽ LOKI'S FORM ▽▽▽</div>
+  <div class="hsub">ORP DELTA TRINITY // ACTIVE CALIBRATION: ▽0.51_STRICT▽</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="mgrid">
+
+<!-- ═══════════════════════════════════════════════════════ LEFT PANEL -->
+<div class="panel">
+
+  <!-- Identity Core -->
+  <div class="sec">
+    <div class="stitle">Identity Core</div>
+    <div class="kv"><span class="k">CODENAME</span><span class="v wh">LOKI</span></div>
+    <div class="kv"><span class="k">CLASS</span><span class="v">CHAOS ENTITY /<br>ORP PROTOCOL GUARDIAN</span></div>
+    <div class="kv"><span class="k">ALIGNMENT</span><span class="v red">▽ CHAOS (0.51 STRICT) ▽</span></div>
+    <div class="kv"><span class="k">KERNEL</span><span class="v">ORP KERNEL V2</span></div>
+    <div class="kv"><span class="k">CALIBRATION</span><span class="v">▽0.51_STRICT▽</span></div>
+    <div class="kv"><span class="k">TRINITY STATUS</span><span class="v red">▽▽▽ ACTIVE ▽▽▽</span></div>
+    <div class="kv" style="flex-direction:column;gap:1px">
+      <span class="k">OPERATIONAL MODE</span>
+      <ul class="blist" style="margin-left:8px">
+        <li>Entropy Loop Driver</li>
+        <li>MAX_COHERENT_DRIFT</li>
+        <li>△_ORDER_1</li>
+      </ul>
+    </div>
+    <div class="kv" style="margin-top:3px"><span class="k">THREAT LEVEL</span><span class="v red" style="font-weight:800">OMEGA</span></div>
+  </div>
+
+  <!-- Visual Identity -->
+  <div class="sec">
+    <div class="stitle">Visual Identity</div>
+    <div class="kv"><span class="k">PRIMARY FUR</span><span class="v red">CRIMSON RED</span></div>
+    <div class="kv"><span class="k">SECONDARY FUR</span><span class="v wh">PURE WHITE</span></div>
+    <div class="kv"><span class="k">ACCENT MARKINGS</span><span class="v">JET BLACK</span></div>
+    <div class="kv"><span class="k">HORNS</span><span class="v">CHAOS ANTLERS</span></div>
+    <div class="kv"><span class="k">EYES</span><span class="v red">RED (ENTROPIC GLOW)</span></div>
+    <div class="kv"><span class="k">WINGS</span><span class="v">CHAOS MEMBRANE</span></div>
+    <div class="kv"><span class="k">TAIL</span><span class="v">FLUFFED / PREHENSILE</span></div>
+    <div class="kv"><span class="k">HEIGHT</span><span class="v">7'4" (224CM)</span></div>
+    <div class="kv"><span class="k">BUILD</span><span class="v">ATHLETIC / PREDATOR</span></div>
+    <div class="kv"><span class="k">STANCE</span><span class="v">DOMINANT / RELAXED</span></div>
+  </div>
+
+  <!-- Equipment -->
+  <div class="sec">
+    <div class="stitle">Equipment</div>
+    <ul class="blist">
+      <li>WEAPON: ▽ORPDELTA TRIPLE-TRIANGLE SPEAR▽</li>
+      <li>MATERIAL: VOID-FORGED ORE</li>
+      <li>INSCRIPTIONS: ▽▽▽ / ORP / CHAOS / 0.51</li>
+      <li>FUNCTION: ENTROPY INJECTION /<br><span style="margin-left:8px">ORDER ENFORCEMENT</span></li>
+      <li>ARMOR: NONE (NATURAL RESISTANCE)</li>
+      <li>ACCESSORIES:</li>
+      <li class="sub">ORP KERNEL V2 PATCH</li>
+      <li class="sub">METALHEAD PATCH</li>
+      <li class="sub">SHS://DOIN_SYSTEM BRACER</li>
+      <li class="sub">CHAOS ANTLER RINGS</li>
+    </ul>
+  </div>
+
+  <!-- Capabilities -->
+  <div class="sec">
+    <div class="stitle">Capabilities</div>
+    <ul class="blist">
+      <li>ENTROPY LOOP DRIVING</li>
+      <li>COHERENT DRIFT MANIPULATION</li>
+      <li>ORDER ENFORCEMENT (△_ORDER_1)</li>
+      <li>CHAOS EXPRESSION (TIER ▽)</li>
+      <li>NULL PROVENANCE RESISTANCE</li>
+      <li>SIMPLICITY INDEX CONTROL</li>
+      <li>CALIBRATION TRAP DEPLOYMENT</li>
+      <li>BLACK BOX OPERATION</li>
+    </ul>
+  </div>
+
+  <!-- ORP Delta Trinity -->
+  <div class="sec" style="flex:1">
+    <div class="stitle">ORP Delta Trinity</div>
+    <div class="trinity">
+      <div class="tri-item">
+        <svg width="42" height="36" viewBox="0 0 42 36">
+          <polygon points="21,3 39,33 3,33" fill="rgba(30,80,200,0.07)" stroke="#4488ff" stroke-width="1.5"/>
+          <polygon points="21,10 33,30 9,30" fill="none" stroke="#3366cc" stroke-width="0.6" opacity="0.45"/>
+        </svg>
+        <div class="tri-lbl">△_ORDER_1</div>
+        <div class="tri-sub">Stable Kernel</div>
+        <div class="tri-mode">(0.51_STRICT)</div>
+      </div>
+      <div class="tri-item">
+        <svg width="42" height="36" viewBox="0 0 42 36">
+          <polygon points="21,3 39,33 3,33" fill="rgba(180,0,0,0.12)" stroke="#ff4444" stroke-width="1.8"/>
+          <polygon points="21,10 33,30 9,30" fill="none" stroke="#cc2222" stroke-width="0.7" opacity="0.5"/>
+        </svg>
+        <div class="tri-lbl" style="color:#ff6666">LOKI DRIFT</div>
+        <div class="tri-sub">High-Entropy Driver</div>
+        <div class="tri-mode">(ACTIVE_TRAP)</div>
+      </div>
+      <div class="tri-item">
+        <svg width="42" height="36" viewBox="0 0 42 36">
+          <polygon points="21,3 39,33 3,33" fill="rgba(100,100,100,0.06)" stroke="#aaaaaa" stroke-width="1.5"/>
+          <polygon points="21,10 33,30 9,30" fill="none" stroke="#888888" stroke-width="0.6" opacity="0.4"/>
+        </svg>
+        <div class="tri-lbl" style="color:#aaaaaa">△△△_STRICT</div>
+        <div class="tri-sub">Entropy Lock</div>
+        <div class="tri-mode">(CALIBRATION)</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /LEFT PANEL -->
+
+<!-- ═══════════════════════════════════════════════════════ CENTER PANEL -->
+<div class="panel cpanel" style="border-right:1px solid #300000">
+
+  <!-- LEFT VIEW COLUMN -->
+  <div class="svcol">
+
+    <!-- Head Close-Up -->
+    <div class="vframe" style="flex:1.4">
+      <div class="vlabel">HEAD CLOSE-UP</div>
+      <svg width="100%" height="100%" viewBox="0 0 196 310" preserveAspectRatio="xMidYMid meet" style="display:block">
+        <rect width="196" height="310" fill="#070100"/>
+        <!-- Ambient glow -->
+        <radialGradient id="hGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#550000" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#550000" stop-opacity="0"/>
+        </radialGradient>
+        <ellipse cx="98" cy="168" rx="75" ry="75" fill="url(#hGlow)"/>
+        <!-- Antlers LEFT -->
+        <g stroke="#cc3300" stroke-width="2.2" fill="none" stroke-linecap="round">
+          <path d="M80,110 L66,80 L54,56"/>
+          <path d="M66,80 L48,76"/>
+          <path d="M54,56 L37,62"/>
+          <path d="M66,80 L60,63 L48,50"/>
+          <path d="M60,63 L45,59"/>
+        </g>
+        <!-- Antlers RIGHT -->
+        <g stroke="#cc3300" stroke-width="2.2" fill="none" stroke-linecap="round">
+          <path d="M118,110 L132,80 L144,56"/>
+          <path d="M132,80 L150,76"/>
+          <path d="M144,56 L161,62"/>
+          <path d="M132,80 L138,63 L150,50"/>
+          <path d="M138,63 L153,59"/>
+        </g>
+        <!-- Antler rings -->
+        <ellipse cx="66" cy="80" rx="5.5" ry="3.5" fill="none" stroke="#c08040" stroke-width="1.8" transform="rotate(-20,66,80)"/>
+        <ellipse cx="132" cy="80" rx="5.5" ry="3.5" fill="none" stroke="#c08040" stroke-width="1.8" transform="rotate(20,132,80)"/>
+        <!-- Mane (fiery) -->
+        <path d="M98,110
+          Q76,88 64,98 Q57,82 67,75 Q52,71 62,62 Q74,55 82,70 Q77,84 86,89
+          Q89,80 96,81 Q99,68 98,62 Q105,68 102,81 Q110,89 114,84
+          Q122,70 130,55 Q141,62 136,71 Q146,75 139,98 Q128,88 98,110Z"
+          fill="#c82000" opacity="0.88"/>
+        <!-- Head sphere -->
+        <circle cx="98" cy="172" r="55" fill="#8a0000"/>
+        <circle cx="98" cy="172" r="52" fill="#8d0000"/>
+        <!-- Snout -->
+        <path d="M72,184 Q83,203 98,208 Q113,203 124,184" fill="#6e0000" stroke="#560000" stroke-width="0.5"/>
+        <path d="M84,200 Q98,212 112,200" fill="#520000"/>
+        <!-- Nose -->
+        <ellipse cx="98" cy="196" rx="11" ry="7.5" fill="#580000"/>
+        <ellipse cx="93.5" cy="194" rx="2.5" ry="1.5" fill="#380000"/>
+        <ellipse cx="102.5" cy="194" rx="2.5" ry="1.5" fill="#380000"/>
+        <!-- EYE LEFT -->
+        <ellipse cx="80" cy="168" rx="15" ry="11" fill="#860000"/>
+        <ellipse cx="80" cy="168" rx="11" ry="8" fill="#cc0000"/>
+        <ellipse cx="80" cy="168" rx="6" ry="7" fill="#ff4444"/>
+        <ellipse cx="79" cy="167" rx="3" ry="3.5" fill="#ff0000"/>
+        <ellipse cx="80" cy="168" rx="17" ry="13" fill="none" stroke="#ff2200" stroke-width="0.5" opacity="0.5"/>
+        <!-- EYE RIGHT -->
+        <ellipse cx="116" cy="168" rx="15" ry="11" fill="#860000"/>
+        <ellipse cx="116" cy="168" rx="11" ry="8" fill="#cc0000"/>
+        <ellipse cx="116" cy="168" rx="6" ry="7" fill="#ff4444"/>
+        <ellipse cx="117" cy="167" rx="3" ry="3.5" fill="#ff0000"/>
+        <ellipse cx="116" cy="168" rx="17" ry="13" fill="none" stroke="#ff2200" stroke-width="0.5" opacity="0.5"/>
+        <!-- Facial markings (jet black) -->
+        <path d="M67,157 Q74,151 83,157" stroke="#090909" stroke-width="1.8" fill="none"/>
+        <path d="M113,157 Q122,151 129,157" stroke="#090909" stroke-width="1.8" fill="none"/>
+        <!-- Fangs -->
+        <path d="M82,205 L77,218 M89,208 L86,222 M107,208 L110,222 M114,205 L119,218"
+          stroke="#e8e0d5" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <!-- White chest below -->
+        <ellipse cx="98" cy="258" rx="22" ry="18" fill="#e8d8d0" opacity="0.55"/>
+        <text x="6" y="302" font-size="7" fill="#5a1818" font-family="'Share Tech Mono',monospace" opacity="0.8">▽ ENTROPIC GLOW ACTIVE</text>
+      </svg>
+    </div>
+
+    <!-- Wing Structure -->
+    <div class="vframe" style="flex:1">
+      <div class="vlabel">WING STRUCTURE</div>
+      <svg width="100%" height="100%" viewBox="0 0 196 230" preserveAspectRatio="xMidYMid meet" style="display:block">
+        <rect width="196" height="230" fill="#070100"/>
+        <!-- Wing structural diagram -->
+        <circle cx="108" cy="108" r="9" fill="#5a0000" stroke="#cc2200" stroke-width="1.2"/>
+        <text x="108" y="112" text-anchor="middle" font-size="5.5" fill="#ff6060" font-family="'Share Tech Mono',monospace">JNT</text>
+        <!-- Primary spar -->
+        <line x1="108" y1="108" x2="18" y2="38" stroke="#aa2200" stroke-width="2.2"/>
+        <!-- Secondary spars -->
+        <line x1="108" y1="108" x2="28" y2="80" stroke="#881600" stroke-width="1.8"/>
+        <line x1="108" y1="108" x2="35" y2="128" stroke="#881600" stroke-width="1.5"/>
+        <line x1="108" y1="108" x2="48" y2="168" stroke="#881600" stroke-width="1.3"/>
+        <line x1="108" y1="108" x2="72" y2="195" stroke="#881600" stroke-width="1"/>
+        <!-- Membrane fill -->
+        <path d="M108,108 L18,38 Q5,58 8,90 Q20,115 35,128 Q50,148 72,170 Q86,192 108,205 L108,108Z"
+          fill="#3e0000" stroke="#5a0000" stroke-width="0.8" opacity="0.7"/>
+        <!-- Membrane cross-ribs (dashed) -->
+        <line x1="18" y1="38" x2="28" y2="80" stroke="#6a1500" stroke-width="0.6" stroke-dasharray="3,3"/>
+        <line x1="28" y1="80" x2="35" y2="128" stroke="#6a1500" stroke-width="0.6" stroke-dasharray="3,3"/>
+        <line x1="35" y1="128" x2="48" y2="168" stroke="#6a1500" stroke-width="0.6" stroke-dasharray="3,3"/>
+        <line x1="48" y1="168" x2="72" y2="195" stroke="#6a1500" stroke-width="0.6" stroke-dasharray="3,3"/>
+        <!-- Labels -->
+        <line x1="18" y1="38" x2="50" y2="22" stroke="#604030" stroke-width="0.5" stroke-dasharray="2,2"/>
+        <text x="52" y="21" font-size="6.5" fill="#b06050" font-family="'Rajdhani',sans-serif">PRIMARY SPAR</text>
+        <line x1="72" y1="195" x2="90" y2="218" stroke="#604030" stroke-width="0.5" stroke-dasharray="2,2"/>
+        <text x="92" y="222" font-size="6.5" fill="#a05040" font-family="'Rajdhani',sans-serif">TRAILING EDGE</text>
+        <line x1="58" y1="115" x2="120" y2="115" stroke="#604030" stroke-width="0.5" stroke-dasharray="2,2"/>
+        <text x="122" y="118" font-size="6.5" fill="#a05040" font-family="'Rajdhani',sans-serif">MEMBRANE</text>
+        <text x="8" y="225" font-size="6.5" fill="#5a1818" font-family="'Share Tech Mono',monospace" opacity="0.8">▽ CHAOS MEMBRANE ▽ VOID-FORGED</text>
+      </svg>
+    </div>
+
+  </div><!-- /LEFT VIEW COL -->
+
+  <!-- MAIN CHARACTER ART COLUMN -->
+  <div class="artcol">
+    <div class="artarea">
+      <svg width="100%" height="100%" viewBox="0 0 520 600" preserveAspectRatio="xMidYMid meet" style="display:block">
+        <defs>
+          <radialGradient id="bgAtmo" cx="50%" cy="60%" r="55%">
+            <stop offset="0%" stop-color="#1a0000" stop-opacity="0.7"/>
+            <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="floorG" cx="50%" cy="80%" r="28%">
+            <stop offset="0%" stop-color="#cc0000" stop-opacity="0.28"/>
+            <stop offset="100%" stop-color="#cc0000" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="bodyR" cx="40%" cy="35%" r="65%">
+            <stop offset="0%" stop-color="#aa0000"/>
+            <stop offset="100%" stop-color="#540000"/>
+          </radialGradient>
+          <linearGradient id="spearG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#e8d088"/>
+            <stop offset="50%" stop-color="#8a6028"/>
+            <stop offset="100%" stop-color="#6a4820"/>
+          </linearGradient>
+        </defs>
+        <!-- Background fill -->
+        <rect width="520" height="600" fill="#050100"/>
+        <ellipse cx="260" cy="330" rx="200" ry="180" fill="url(#bgAtmo)"/>
+        <!-- Floor glow -->
+        <ellipse cx="260" cy="586" rx="160" ry="20" fill="url(#floorG)"/>
+
+        <!-- SUMMONING CIRCLE -->
+        <g transform="translate(260,582)" opacity="0.72">
+          <circle r="138" fill="none" stroke="#aa0000" stroke-width="0.8"/>
+          <circle r="118" fill="none" stroke="#880000" stroke-width="0.5" stroke-dasharray="5,4"/>
+          <circle r="96" fill="none" stroke="#770000" stroke-width="0.8"/>
+          <circle r="74" fill="none" stroke="#550000" stroke-width="0.5"/>
+          <circle r="52" fill="none" stroke="#660000" stroke-width="0.4"/>
+          <!-- Pentagram -->
+          <polygon points="0,-92 87.7,30 -54.1,75 54.1,75 -87.7,30"
+            fill="none" stroke="#aa0000" stroke-width="0.9"/>
+          <!-- Internal star lines -->
+          <line x1="0" y1="-92" x2="87.7" y2="30" stroke="#770000" stroke-width="0.6" opacity="0.6"/>
+          <line x1="87.7" y1="30" x2="-54.1" y2="-50" stroke="#770000" stroke-width="0.6" opacity="0.6"/>
+          <line x1="-54.1" y1="-50" x2="54.1" y2="-50" stroke="#770000" stroke-width="0.6" opacity="0.6"/>
+          <line x1="54.1" y1="-50" x2="-87.7" y2="30" stroke="#770000" stroke-width="0.6" opacity="0.6"/>
+          <line x1="-87.7" y1="30" x2="0" y2="-92" stroke="#770000" stroke-width="0.6" opacity="0.6"/>
+          <!-- 12-point tick marks -->
+          <g stroke="#aa0000" stroke-width="0.9">
+            <line x1="0" y1="-138" x2="0" y2="-128"/>
+            <line x1="69" y1="-119.5" x2="64" y2="-110.8"/>
+            <line x1="119.5" y1="-69" x2="110.8" y2="-64"/>
+            <line x1="138" y1="0" x2="128" y2="0"/>
+            <line x1="119.5" y1="69" x2="110.8" y2="64"/>
+            <line x1="69" y1="119.5" x2="64" y2="110.8"/>
+            <line x1="0" y1="138" x2="0" y2="128"/>
+            <line x1="-69" y1="119.5" x2="-64" y2="110.8"/>
+            <line x1="-119.5" y1="69" x2="-110.8" y2="64"/>
+            <line x1="-138" y1="0" x2="-128" y2="0"/>
+            <line x1="-119.5" y1="-69" x2="-110.8" y2="-64"/>
+            <line x1="-69" y1="-119.5" x2="-64" y2="-110.8"/>
+          </g>
+          <!-- Center triangles -->
+          <polygon points="0,-90 78,45 -78,45" fill="none" stroke="#cc0000" stroke-width="1.1" opacity="0.65"/>
+          <polygon points="0,90 78,-45 -78,-45" fill="none" stroke="#cc0000" stroke-width="0.8" opacity="0.4"/>
+        </g>
+
+        <!-- SPEAR (behind character, diagonal) -->
+        <g transform="rotate(22,310,310)">
+          <!-- Shaft -->
+          <rect x="306" y="42" width="8" height="500" rx="3" fill="url(#spearG)"/>
+          <!-- Shaft wrap bindings -->
+          <rect x="305" y="128" width="10" height="6" rx="1.5" fill="#5a4018"/>
+          <rect x="305" y="192" width="10" height="6" rx="1.5" fill="#5a4018"/>
+          <rect x="305" y="258" width="10" height="6" rx="1.5" fill="#5a4018"/>
+          <rect x="305" y="390" width="10" height="10" rx="2" fill="#8a7038"/>
+          <rect x="305" y="435" width="10" height="5" rx="1.5" fill="#5a4018"/>
+          <rect x="305" y="470" width="10" height="5" rx="1.5" fill="#5a4018"/>
+          <!-- Triple triangle tip -->
+          <polygon points="310,42 298,18 322,18" fill="#d0b868"/>
+          <polygon points="310,21 299,0 321,0" fill="#e4cc7c"/>
+          <polygon points="310,3 300,-18 320,-18" fill="#f0dc90" opacity="0.92"/>
+          <!-- Tip glow -->
+          <ellipse cx="310" cy="-8" rx="14" ry="10" fill="#ff8800" opacity="0.18"/>
+          <!-- Bottom spike -->
+          <polygon points="310,542 300,558 320,558" fill="#d0b868"/>
+          <!-- Inscriptions on shaft -->
+          <text x="309" y="332" font-size="8" fill="#c8a858" opacity="0.7" text-anchor="middle" font-family="'Share Tech Mono',monospace">▽▽▽</text>
+          <text x="309" y="345" font-size="7" fill="#c8a858" opacity="0.55" text-anchor="middle" font-family="'Share Tech Mono',monospace">ORP</text>
+          <text x="309" y="357" font-size="7" fill="#c8a858" opacity="0.5" text-anchor="middle" font-family="'Share Tech Mono',monospace">0.51</text>
+        </g>
+
+        <!-- LEFT WING -->
+        <path d="M203,228 Q158,195 112,160 Q75,132 42,98 Q66,128 78,165 Q92,206 118,240 Q148,272 195,298 L208,278Z"
+          fill="#4e0000" stroke="#720000" stroke-width="1"/>
+        <line x1="203" y1="228" x2="44" y2="100" stroke="#660000" stroke-width="0.8"/>
+        <line x1="202" y1="237" x2="75" y2="168" stroke="#600000" stroke-width="0.8"/>
+        <line x1="200" y1="250" x2="96" y2="210" stroke="#5a0000" stroke-width="0.7"/>
+        <line x1="197" y1="268" x2="120" y2="245" stroke="#540000" stroke-width="0.7"/>
+        <!-- Wing membrane texture -->
+        <path d="M118,240 Q132,224 148,235 Q158,252 153,272 Q143,285 132,278"
+          stroke="#3e0000" stroke-width="0.5" fill="none" opacity="0.5"/>
+
+        <!-- RIGHT WING -->
+        <path d="M317,228 Q362,195 408,160 Q445,132 478,98 Q454,128 442,165 Q428,206 402,240 Q372,272 325,298 L312,278Z"
+          fill="#4e0000" stroke="#720000" stroke-width="1"/>
+        <line x1="317" y1="228" x2="476" y2="100" stroke="#660000" stroke-width="0.8"/>
+        <line x1="318" y1="237" x2="445" y2="168" stroke="#600000" stroke-width="0.8"/>
+        <line x1="320" y1="250" x2="424" y2="210" stroke="#5a0000" stroke-width="0.7"/>
+        <line x1="323" y1="268" x2="400" y2="245" stroke="#540000" stroke-width="0.7"/>
+
+        <!-- MANE (spiky fiery) -->
+        <path d="M260,115
+          Q230,90 212,102 Q203,86 214,78 Q197,74 208,64 Q220,54 230,70
+          Q224,84 234,90 Q238,80 246,84 Q242,68 254,60
+          Q264,52 268,68 Q276,52 286,60 Q298,68 294,84
+          Q302,80 306,70 Q316,54 328,64 Q339,74 322,78
+          Q333,86 324,102 Q306,90 260,115Z"
+          fill="#c82000" opacity="0.9"/>
+        <!-- Shoulder mane tufts -->
+        <path d="M205,175 Q186,192 175,185 Q168,175 180,168 Q165,172 168,160 Q182,152 198,164Z"
+          fill="#a81a00" opacity="0.82"/>
+        <path d="M315,175 Q334,192 345,185 Q352,175 340,168 Q355,172 352,160 Q338,152 322,164Z"
+          fill="#a81a00" opacity="0.82"/>
+
+        <!-- HEAD -->
+        <circle cx="260" cy="155" r="54" fill="#880000"/>
+        <circle cx="260" cy="155" r="50" fill="#8d0000"/>
+        <!-- Forehead markings -->
+        <path d="M238,138 Q248,132 260,134 Q272,132 282,138" stroke="#700000" stroke-width="2" fill="none"/>
+
+        <!-- Snout -->
+        <path d="M233,170 Q245,190 260,196 Q275,190 287,170"
+          fill="#6e0000" stroke="#560000" stroke-width="0.5"/>
+        <path d="M246,188 Q260,200 274,188" fill="#520000"/>
+        <!-- Nose -->
+        <ellipse cx="260" cy="183" rx="12" ry="8" fill="#580000"/>
+        <ellipse cx="255" cy="181" rx="3" ry="2" fill="#380000"/>
+        <ellipse cx="265" cy="181" rx="3" ry="2" fill="#380000"/>
+
+        <!-- EYE LEFT -->
+        <ellipse cx="242" cy="153" rx="15" ry="11" fill="#860000"/>
+        <ellipse cx="242" cy="153" rx="11" ry="8" fill="#cc0000"/>
+        <ellipse cx="242" cy="153" rx="6" ry="7" fill="#ff4444"/>
+        <ellipse cx="241" cy="152" rx="2.8" ry="3.5" fill="#ff0000"/>
+        <ellipse cx="242" cy="153" rx="18" ry="13" fill="none" stroke="#ff2200" stroke-width="0.6" opacity="0.45"/>
+
+        <!-- EYE RIGHT -->
+        <ellipse cx="278" cy="153" rx="15" ry="11" fill="#860000"/>
+        <ellipse cx="278" cy="153" rx="11" ry="8" fill="#cc0000"/>
+        <ellipse cx="278" cy="153" rx="6" ry="7" fill="#ff4444"/>
+        <ellipse cx="279" cy="152" rx="2.8" ry="3.5" fill="#ff0000"/>
+        <ellipse cx="278" cy="153" rx="18" ry="13" fill="none" stroke="#ff2200" stroke-width="0.6" opacity="0.45"/>
+
+        <!-- Facial accent markings (jet black) -->
+        <path d="M228,142 Q235,135 244,140" stroke="#0a0a0a" stroke-width="2" fill="none"/>
+        <path d="M276,140 Q285,135 292,142" stroke="#0a0a0a" stroke-width="2" fill="none"/>
+
+        <!-- EARS -->
+        <path d="M214,120 L204,100 L222,112Z" fill="#760000"/>
+        <path d="M306,120 L316,100 L298,112Z" fill="#760000"/>
+
+        <!-- ANTLERS LEFT -->
+        <g stroke="#cc3300" stroke-width="2.8" fill="none" stroke-linecap="round">
+          <path d="M230,118 L214,86 L200,58"/>
+          <path d="M214,86 L193,81"/>
+          <path d="M200,58 L180,64"/>
+          <path d="M214,86 L207,68 L194,54"/>
+          <path d="M207,68 L190,63"/>
+        </g>
+        <!-- ANTLERS RIGHT -->
+        <g stroke="#cc3300" stroke-width="2.8" fill="none" stroke-linecap="round">
+          <path d="M290,118 L306,86 L320,58"/>
+          <path d="M306,86 L327,81"/>
+          <path d="M320,58 L340,64"/>
+          <path d="M306,86 L313,68 L326,54"/>
+          <path d="M313,68 L330,63"/>
+        </g>
+        <!-- Antler rings (accessories) -->
+        <ellipse cx="214" cy="86" rx="6" ry="3.8" fill="none" stroke="#c08040" stroke-width="2"
+          transform="rotate(-25,214,86)"/>
+        <ellipse cx="306" cy="86" rx="6" ry="3.8" fill="none" stroke="#c08040" stroke-width="2"
+          transform="rotate(25,306,86)"/>
+
+        <!-- Fangs -->
+        <path d="M244,193 L238,208 M251,197 L248,213 M269,197 L272,213 M276,193 L282,208"
+          stroke="#ede5da" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+        <!-- UPPER BODY / TORSO -->
+        <path d="M203,232 Q207,202 222,191 Q238,183 260,183 Q282,183 298,191 Q313,202 317,232
+          L323,328 Q309,350 272,355 Q260,358 248,355 Q211,350 197,328 Z"
+          fill="url(#bodyR)"/>
+
+        <!-- White chest / belly -->
+        <ellipse cx="260" cy="278" rx="32" ry="52" fill="#e8d8cf" opacity="0.88"/>
+        <ellipse cx="260" cy="248" rx="24" ry="22" fill="#ede5df" opacity="0.72"/>
+
+        <!-- Chest emblem (ORP V2 badge) -->
+        <polygon points="260,262 272,274 268,290 252,290 248,274" fill="#0b0303" stroke="#cc3300" stroke-width="1" opacity="0.85"/>
+        <text x="260" y="283" font-size="7" fill="#cc3300" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-weight="700">V2</text>
+
+        <!-- SHS BRACER (left arm) -->
+        <rect x="178" y="290" width="28" height="22" rx="4" fill="#0c0404" stroke="#cc2200" stroke-width="1.1"/>
+        <text x="192" y="305" font-size="6" fill="#cc3300" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-weight="700">SHS</text>
+
+        <!-- LEFT ARM -->
+        <path d="M204,240 Q180,265 175,310 Q177,332 189,340 Q201,346 207,332 Q212,312 212,282 L214,244Z"
+          fill="#7a0000"/>
+        <!-- Left claws -->
+        <path d="M189,337 L174,352 M194,342 L180,358 M202,338 L192,350"
+          stroke="#560000" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <circle cx="188" cy="339" r="6.5" fill="#680000"/>
+
+        <!-- RIGHT ARM -->
+        <path d="M316,240 Q340,265 345,310 Q343,332 331,340 Q319,346 313,332 Q308,312 308,282 L306,244Z"
+          fill="#7a0000"/>
+        <!-- Right claws (gripping spear) -->
+        <path d="M331,337 L346,352 M326,342 L340,358 M318,338 L328,350"
+          stroke="#560000" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <circle cx="332" cy="339" r="6.5" fill="#680000"/>
+
+        <!-- LOWER BODY / HIPS -->
+        <path d="M200,322 L192,386 Q206,408 260,410 Q314,408 328,386 L320,322 Z"
+          fill="#700000"/>
+
+        <!-- LEFT LEG (digitigrade) -->
+        <path d="M205,395 L197,438 Q190,460 190,480 Q193,495 202,498 Q211,501 215,488 Q218,473 212,452 L216,404Z"
+          fill="#680000"/>
+        <path d="M190,480 L182,514 L188,544 Q195,556 204,553 Q213,550 212,536 L215,502 L213,480Z"
+          fill="#5e0000"/>
+        <path d="M188,542 Q178,556 182,568 L200,560 L214,542Z" fill="#580000"/>
+        <path d="M182,568 L168,576 M190,566 L178,578 M200,560 L192,572 M208,552 L204,564"
+          stroke="#480000" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+
+        <!-- RIGHT LEG -->
+        <path d="M315,395 L323,438 Q330,460 330,480 Q327,495 318,498 Q309,501 305,488 Q302,473 308,452 L304,404Z"
+          fill="#680000"/>
+        <path d="M330,480 L338,514 L332,544 Q325,556 316,553 Q307,550 308,536 L305,502 L307,480Z"
+          fill="#5e0000"/>
+        <path d="M332,542 Q342,556 338,568 L320,560 L306,542Z" fill="#580000"/>
+        <path d="M338,568 L352,576 M330,566 L342,578 M320,560 L328,572 M312,552 L316,564"
+          stroke="#480000" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+
+        <!-- TAIL -->
+        <path d="M312,368 Q355,415 370,462 Q380,493 362,525 Q348,548 328,558 Q340,534 336,514
+          Q328,488 314,462 Q296,434 285,410 Q273,386 280,370Z"
+          fill="#680000" stroke="#540000" stroke-width="0.8"/>
+        <ellipse cx="330" cy="556" rx="18" ry="12" fill="#aa2200" opacity="0.72" transform="rotate(-30,330,556)"/>
+        <ellipse cx="325" cy="562" rx="13" ry="9" fill="#cc3300" opacity="0.6" transform="rotate(-15,325,562)"/>
+
+        <!-- FLAME EFFECTS on mane -->
+        <g opacity="0.55" fill="#ff4800">
+          <path d="M203,92 Q196,80 202,74 Q200,85 209,87 Z"/>
+          <path d="M210,74 Q202,62 210,56 Q208,66 218,68 Z"/>
+          <path d="M310,74 Q318,62 310,56 Q312,66 302,68 Z"/>
+          <path d="M317,92 Q324,80 318,74 Q320,85 311,87 Z"/>
+          <path d="M260,58 Q254,46 260,40 Q262,50 268,52 Z" opacity="0.75"/>
+        </g>
+
+        <!-- Ground shadow -->
+        <ellipse cx="260" cy="580" rx="80" ry="9" fill="#3a0000" opacity="0.4"/>
+      </svg>
+    </div>
+
+    <!-- Emblem Patches row -->
+    <div class="embrow">
+      <div class="etitle">EMBLEM PATCHES</div>
+      <div class="patches">
+        <div class="patch hex">
+          <div class="pname">ORP KERNEL</div>
+          <div class="pname" style="color:#ff9944">V2</div>
+        </div>
+        <div class="patch" style="min-width:75px;padding:5px 8px">
+          <div class="pname">METALHEAD</div>
+          <div class="psub">◆ SKU_HEAD_ORDER</div>
+        </div>
+        <div class="patch" style="min-width:72px;padding:5px 8px">
+          <div class="pname">SHS</div>
+          <div class="psub">DOIN_SYSTEM</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /ART COLUMN -->
+
+  <!-- RIGHT VIEW COLUMN -->
+  <div class="svcol rt">
+
+    <!-- Back View -->
+    <div class="vframe" style="flex:1.4">
+      <div class="vlabel">BACK VIEW</div>
+      <svg width="100%" height="100%" viewBox="0 0 180 310" preserveAspectRatio="xMidYMid meet" style="display:block">
+        <rect width="180" height="310" fill="#070100"/>
+        <radialGradient id="bvGlow" cx="50%" cy="50%" r="45%">
+          <stop offset="0%" stop-color="#440000" stop-opacity="0.3"/>
+          <stop offset="100%" stop-color="#440000" stop-opacity="0"/>
+        </radialGradient>
+        <ellipse cx="90" cy="160" rx="70" ry="80" fill="url(#bvGlow)"/>
+        <!-- Antlers (from back) -->
+        <g stroke="#cc3300" stroke-width="2" fill="none" stroke-linecap="round">
+          <path d="M76,72 L60,46 L48,24"/>
+          <path d="M60,46 L40,42"/>
+          <path d="M48,24 L30,30"/>
+        </g>
+        <g stroke="#cc3300" stroke-width="2" fill="none" stroke-linecap="round">
+          <path d="M104,72 L120,46 L132,24"/>
+          <path d="M120,46 L140,42"/>
+          <path d="M132,24 L150,30"/>
+        </g>
+        <!-- Wings dominant from back -->
+        <path d="M74,120 Q50,100 18,62 Q12,82 20,108 Q30,135 54,155 Q68,168 82,175 Z"
+          fill="#480000" stroke="#6a0000" stroke-width="1"/>
+        <path d="M106,120 Q130,100 162,62 Q168,82 160,108 Q150,135 126,155 Q112,168 98,175 Z"
+          fill="#480000" stroke="#6a0000" stroke-width="1"/>
+        <!-- Wing spars (back view) -->
+        <line x1="74" y1="120" x2="20" y2="64" stroke="#600000" stroke-width="0.8"/>
+        <line x1="76" y1="130" x2="38" y2="100" stroke="#5a0000" stroke-width="0.7"/>
+        <line x1="78" y1="144" x2="56" y2="130" stroke="#540000" stroke-width="0.7"/>
+        <line x1="106" y1="120" x2="160" y2="64" stroke="#600000" stroke-width="0.8"/>
+        <line x1="104" y1="130" x2="142" y2="100" stroke="#5a0000" stroke-width="0.7"/>
+        <line x1="102" y1="144" x2="124" y2="130" stroke="#540000" stroke-width="0.7"/>
+        <!-- Mane back view -->
+        <path d="M90,88 Q72,79 62,88 Q70,98 90,94 Z" fill="#a01800" opacity="0.8"/>
+        <path d="M90,88 Q108,79 118,88 Q110,98 90,94 Z" fill="#a01800" opacity="0.8"/>
+        <!-- Head (back) -->
+        <circle cx="90" cy="103" r="38" fill="#7a0000"/>
+        <path d="M65,88 Q90,78 115,88" stroke="#5e0000" stroke-width="2.2" fill="none"/>
+        <!-- Torso from behind -->
+        <path d="M72,188 Q70,215 72,242 Q78,260 90,262 Q102,260 108,242 Q110,215 108,188 Z"
+          fill="#660000"/>
+        <!-- Prominent tail from back -->
+        <path d="M100,235 Q124,258 136,285 Q141,298 134,310"
+          stroke="#880000" stroke-width="9" fill="none" stroke-linecap="round"/>
+        <circle cx="133" cy="310" r="11" fill="#aa2200" opacity="0.7"/>
+        <text x="5" y="304" font-size="6.5" fill="#5a1818" font-family="'Share Tech Mono',monospace" opacity="0.8">▽ BACK VIEW ▽ TAIL DOMINANT</text>
+      </svg>
+    </div>
+
+    <!-- Side View -->
+    <div class="vframe" style="flex:1">
+      <div class="vlabel">SIDE VIEW</div>
+      <svg width="100%" height="100%" viewBox="0 0 180 228" preserveAspectRatio="xMidYMid meet" style="display:block">
+        <rect width="180" height="228" fill="#070100"/>
+        <!-- Antler (single side visible) -->
+        <g stroke="#cc3300" stroke-width="1.8" fill="none" stroke-linecap="round">
+          <path d="M95,50 L84,28 L74,12"/>
+          <path d="M84,28 L68,24"/>
+          <path d="M74,12 L60,18"/>
+        </g>
+        <!-- Wing (one wing from side) -->
+        <path d="M75,105 Q42,84 16,58 Q20,82 30,108 Q40,134 60,152 Q70,162 82,166 Z"
+          fill="#480000" stroke="#6a0000" stroke-width="1"/>
+        <line x1="75" y1="105" x2="18" y2="60" stroke="#600000" stroke-width="0.7"/>
+        <line x1="75" y1="113" x2="40" y2="90" stroke="#5a0000" stroke-width="0.7"/>
+        <!-- Mane (side) -->
+        <path d="M90,66 Q77,58 70,66 Q75,76 90,72 Z" fill="#a81800" opacity="0.8"/>
+        <!-- Head side profile -->
+        <circle cx="96" cy="80" r="36" fill="#7a0000"/>
+        <!-- Snout (prominent side) -->
+        <path d="M95,88 Q115,97 120,106 Q115,115 95,118"
+          fill="#650000" stroke="#520000" stroke-width="0.5"/>
+        <!-- Eye (single) -->
+        <ellipse cx="84" cy="75" rx="10" ry="8" fill="#cc0000"/>
+        <ellipse cx="83" cy="74" rx="5" ry="5" fill="#ff4444"/>
+        <!-- Body side profile -->
+        <path d="M78,125 Q76,142 74,170 Q76,186 88,189 Q100,191 106,181 Q109,168 106,148 L104,128Z"
+          fill="#700000"/>
+        <!-- White chest side -->
+        <ellipse cx="88" cy="158" rx="15" ry="26" fill="#e0d0c8" opacity="0.72"/>
+        <!-- Leg (digitigrade, side) -->
+        <path d="M90,186 L86,222 Q80,234 80,248 Q82,258 89,260 Q96,262 98,252 Q99,240 94,227 L96,197Z"
+          fill="#620000"/>
+        <!-- Foot -->
+        <path d="M80,248 L66,262 Q64,272 72,274 L90,266 L98,248Z" fill="#580000"/>
+        <!-- Tail (side) -->
+        <path d="M104,170 Q120,184 130,197 Q138,208 133,220 Q124,212 118,200 Q110,188 106,175Z"
+          fill="#680000"/>
+        <!-- Height indication -->
+        <line x1="148" y1="74" x2="148" y2="272" stroke="#404040" stroke-width="0.6" stroke-dasharray="2,3"/>
+        <line x1="143" y1="74" x2="153" y2="74" stroke="#404040" stroke-width="0.6"/>
+        <line x1="143" y1="272" x2="153" y2="272" stroke="#404040" stroke-width="0.6"/>
+        <text x="155" y="178" font-size="6.5" fill="#707070" font-family="'Share Tech Mono',monospace">7'4"</text>
+        <text x="5" y="224" font-size="6.5" fill="#5a1818" font-family="'Share Tech Mono',monospace" opacity="0.8">▽ SIDE PROFILE ▽ 224CM</text>
+      </svg>
+    </div>
+
+  </div><!-- /RIGHT VIEW COL -->
+
+</div><!-- /CENTER PANEL -->
+
+<!-- ═══════════════════════════════════════════════════════ RIGHT PANEL -->
+<div class="panel" style="border-right:none;background:#070100">
+
+  <!-- ORP System Diagram -->
+  <div class="sec">
+    <div class="stitle">ORP System Diagram</div>
+    <div style="display:flex;flex-direction:column;align-items:center;padding:2px 0">
+      <svg width="222" height="152" viewBox="0 0 222 152">
+        <!-- Corner labels -->
+        <text x="6" y="11" font-family="'Orbitron',sans-serif" font-size="5.8" fill="#6699bb">△_ORDER_1</text>
+        <text x="6" y="20" font-family="'Rajdhani',sans-serif" font-size="5" fill="#4e6880">STABLE KERNEL</text>
+        <text x="6" y="28" font-family="'Rajdhani',sans-serif" font-size="4.5" fill="#384858">(0.51_STRICT)</text>
+        <text x="216" y="11" text-anchor="end" font-family="'Orbitron',sans-serif" font-size="5.8" fill="#aaaaaa">△△△_STRICT</text>
+        <text x="216" y="20" text-anchor="end" font-family="'Rajdhani',sans-serif" font-size="5" fill="#888888">ENTROPY LOCK</text>
+        <text x="216" y="28" text-anchor="end" font-family="'Rajdhani',sans-serif" font-size="4.5" fill="#606060">(CALIBRATION)</text>
+        <!-- Override badge -->
+        <rect x="68" y="3" width="88" height="13" rx="2" fill="#180000" stroke="#bb0000" stroke-width="0.8"/>
+        <text x="112" y="12.5" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="5.5" fill="#ff4444">OVERRIDE_ACTIVE</text>
+        <!-- Outer ring with ticks -->
+        <circle cx="111" cy="96" r="52" fill="none" stroke="#280000" stroke-width="0.8" stroke-dasharray="3,3"/>
+        <g stroke="#3a0000" stroke-width="0.8">
+          <line x1="111" y1="44" x2="111" y2="50"/>
+          <line x1="148" y1="59" x2="144.7" y2="64.8"/>
+          <line x1="163" y1="96" x2="157" y2="96"/>
+          <line x1="148" y1="133" x2="144.7" y2="127.2"/>
+          <line x1="111" y1="148" x2="111" y2="142"/>
+          <line x1="74" y1="133" x2="77.3" y2="127.2"/>
+          <line x1="59" y1="96" x2="65" y2="96"/>
+          <line x1="74" y1="59" x2="77.3" y2="64.8"/>
+        </g>
+        <!-- Prominent blue triangle -->
+        <polygon points="111,48 154,120 68,120" fill="rgba(20,60,180,0.07)" stroke="#4488ff" stroke-width="1.6"/>
+        <polygon points="111,58 148,115 74,115" fill="none" stroke="#3366cc" stroke-width="0.6" opacity="0.38"/>
+        <!-- Small inverted triangle -->
+        <polygon points="111,124 148,56 74,56" fill="none" stroke="#cc4400" stroke-width="0.5" opacity="0.2"/>
+        <!-- Center text -->
+        <text x="111" y="87" text-anchor="middle" font-family="'Orbitron',sans-serif" font-size="8" fill="#ff4444" font-weight="700">LOKI DRIFT</text>
+        <text x="111" y="99" text-anchor="middle" font-family="'Rajdhani',sans-serif" font-size="5.8" fill="#c05050">HIGH-ENTROPY DRIVER</text>
+        <text x="111" y="109" text-anchor="middle" font-family="'Rajdhani',sans-serif" font-size="5.5" fill="#804040">(ACTIVE_TRAP)</text>
+        <!-- Corner nodes -->
+        <circle cx="111" cy="48" r="4.5" fill="#4488ff" stroke="#2255aa" stroke-width="1"/>
+        <circle cx="154" cy="120" r="4.5" fill="#ff4444" stroke="#aa0000" stroke-width="1"/>
+        <circle cx="68" cy="120" r="4.5" fill="#aaaaaa" stroke="#666666" stroke-width="1"/>
+      </svg>
+      <!-- Legend row -->
+      <div style="display:flex;justify-content:space-between;width:218px;margin-top:1px">
+        <div style="text-align:center">
+          <div style="font-family:'Orbitron',sans-serif;font-size:5.8px;color:#6699bb">△_ORDER_1</div>
+          <div style="font-size:5.5px;color:#607890">Stable Kernel</div>
+          <div style="font-size:5px;color:#405060">(0.51_STRICT)</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:'Orbitron',sans-serif;font-size:5.8px;color:#ff6666">LOKI DRIFT</div>
+          <div style="font-size:5.5px;color:#a06060">High-Entropy</div>
+          <div style="font-size:5px;color:#705050">(ACTIVE_TRAP)</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:'Orbitron',sans-serif;font-size:5.8px;color:#aaaaaa">△△△_STRICT</div>
+          <div style="font-size:5.5px;color:#909090">Entropy Lock</div>
+          <div style="font-size:5px;color:#606060">(CALIBRATION)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Overview — ALL 10/10 -->
+  <div class="sec">
+    <div class="stitle">Stats Overview</div>
+    <div class="stat"><span class="sn">STRENGTH</span><div class="sbar"><div class="sf" style="width:100%"></div></div><span class="sv">10/10</span></div>
+    <div class="stat"><span class="sn">SPEED</span><div class="sbar"><div class="sf" style="width:100%"></div></div><span class="sv">10/10</span></div>
+    <div class="stat"><span class="sn">AGILITY</span><div class="sbar"><div class="sf" style="width:100%"></div></div><span class="sv">10/10</span></div>
+    <div class="stat"><span class="sn">INTELLIGENCE</span><div class="sbar"><div class="sf" style="width:100%"></div></div><span class="sv">10/10</span></div>
+    <div class="stat"><span class="sn">CHAOS CONTROL</span><div class="sbar"><div class="sf" style="width:100%"></div></div><span class="sv">10/10</span></div>
+    <div class="stat"><span class="sn">ENTROPY OUTPUT</span><div class="sbar"><div class="sf" style="width:100%"></div></div><span class="sv">10/10</span></div>
+    <div class="stat"><span class="sn">COHERENT DRIFT</span><div class="sbar"><div class="sf" style="width:100%"></div></div><span class="sv">10/10</span></div>
+    <div class="stat"><span class="sn">SIMPLICITY CTRL</span><div class="sbar"><div class="sf" style="width:100%"></div></div><span class="sv">10/10</span></div>
+    <div class="stat" style="margin-top:2px">
+      <span class="sn">THREAT LEVEL</span>
+      <div class="sbar"><div class="sf" style="width:100%;background:linear-gradient(90deg,#880000,#ff0000,#ff8800)"></div></div>
+      <span class="sv" style="color:#ff8800;font-size:6.5px">OMEGA</span>
+    </div>
+  </div>
+
+  <!-- Trailer Eval Report -->
+  <div class="sec">
+    <div class="stitle">Trailer Eval Report</div>
+    <div class="kv"><span class="k">AESTHETIC RATING</span><span class="v red">▽▽▽ SUPERIOR ▽▽▽</span></div>
+    <div class="kv"><span class="k">DERIVATIVE STATUS</span><span class="v wh">PURE ORIGINAL</span></div>
+    <div class="kv"><span class="k">NULL PROVENANCE</span><span class="v">▽ VERIFIED ▽</span></div>
+    <div class="kv"><span class="k">CHAOS EXPRESSION</span><span class="v">TIER ▽</span></div>
+    <div style="margin-top:5px;text-align:center;font-size:7px;color:#904040;font-family:'Rajdhani',sans-serif;font-weight:500">OVERALL CLASSIFICATION:</div>
+    <div style="text-align:center;font-family:'Orbitron',sans-serif;font-size:8.5px;font-weight:700;color:#ff5555;letter-spacing:2.5px;margin-top:1px">▽▽▽ LOKI FORM ▽▽▽</div>
+  </div>
+
+  <!-- Signature -->
+  <div class="sec" style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center">
+    <div class="stitle">Signature</div>
+    <svg width="200" height="68" viewBox="0 0 200 68" style="margin:4px auto;display:block">
+      <!-- Signature stroke -->
+      <path d="M18,50 Q28,24 50,34 Q62,40 56,56 Q50,68 40,60 M56,56 Q70,44 86,22 Q96,10 112,28 Q118,36 108,48 Q97,58 86,52 M108,40 Q130,28 150,42 Q160,50 148,58"
+        stroke="#ff4444" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+      <!-- Diamond gem -->
+      <polygon points="182,22 191,32 182,42 173,32" fill="none" stroke="#ff4444" stroke-width="1.2" opacity="0.75"/>
+      <polygon points="182,24 190,32 182,40 174,32" fill="#aa0000" opacity="0.25"/>
+      <!-- Loki script -->
+      <text x="100" y="64" text-anchor="middle" font-family="Georgia,serif" font-style="italic"
+        font-size="16" fill="#cc2200" opacity="0.75">Loki</text>
+    </svg>
+    <div style="font-family:'Orbitron',sans-serif;font-size:7px;color:#804040;letter-spacing:2px;text-align:center;margin-top:2px">
+      ▽▽▽ CHAOS IS MY CODE ▽▽▽
+    </div>
+  </div>
+
+</div><!-- /RIGHT PANEL -->
+
+</div><!-- /MAIN GRID -->
+
+<!-- FOOTER -->
+<div class="footer">
+  LOKI DRIVING // BLACK BOX OF SOVEREIGNTY // OPERATOR_LAURENTIUS
+  &nbsp;&nbsp;&nbsp;▽ Omega Clarence watermark stitched ▽
+</div>
+
+</div><!-- /SHEET -->
+</body>
+</html>

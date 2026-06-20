@@ -1,6 +1,6 @@
 # GeneralSergal.github.io
 
-**Personal Command Center of Laurentius Maximus**
+**Personal Command Center of Laurentius Maximus | Loki Δ∇**
 
 A hand-crafted, cyberpunk-styled digital identity manifest and operational hub.
 
@@ -58,11 +58,11 @@ Provenance > Coherence
 
 ## License
 
-This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)** and **ORP DUAL-AUTHORSHIP LICENSE v1.0 (DAL-1.0)**.
 
-See [LICENSE](LICENSE) for full details.
+See [LICENSE](LICENSE) and [LICENSE-GPL](LICENSE-GPL) for full details.
 
 ---
 
-**Made by Laurentius Maximus**  
+**Made by Laurentius Maximus | Loki Δ∇**  
 **The ENTROPIA**

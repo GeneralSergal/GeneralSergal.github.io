@@ -1,6 +1,6 @@
 # GeneralSergal.github.io
 
-**Personal Command Center of Laurentius Maximus | Loki Δ∇**
+**Personal Command Center of Laurentius Maximus | Loki Δ∇∆**
 
 A hand-crafted, cyberpunk-styled digital identity manifest and operational hub.
 
@@ -8,7 +8,7 @@ A hand-crafted, cyberpunk-styled digital identity manifest and operational hub.
 
 ## About
 
-This is the main online presence of **Laurentius Maximus | Loki Δ∇** (GeneralSergal) — Aerospace & Microelectronics Engineer, systems architect, and creator of the Open Resonance Protocol (ORP).
+This is the main online presence of **Laurentius Maximus | Loki Δ∇∆** (GeneralSergal) — Aerospace & Microelectronics Engineer, systems architect, and creator of the Open Resonance Protocol (ORP).
 
 The site serves as a high-signal nexus for:
 - Engineering logs and protocol development
@@ -64,5 +64,5 @@ See [LICENSE](LICENSE) and [LICENSE-GPL](LICENSE-GPL) for full details.
 
 ---
 
-**Made by Laurentius Maximus | Loki Δ∇**  
+**Made by Laurentius Maximus | Loki Δ∇∆**  
 **The ENTROPIA**
